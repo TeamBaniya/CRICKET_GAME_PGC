@@ -5,110 +5,179 @@ from handlers.help import game_instructions_menu
 from handlers.team import team_mode_menu
 from handlers.auction import auction_mode_menu
 from handlers.match import overs_selected
-from handlers.start import start_command
+from handlers.start import start_command, host_callback
+from handlers.vote import vote_game_callback
+from handlers.solo import solo_tree_community, solo_play_callback
+from config import BOWLING_SPEEDS_BUTTONS, UPDATES_LINK, SUPPORT_LINK
 
 async def callback_handler(client, callback_query: CallbackQuery):
     data = callback_query.data
     await callback_query.answer()  # Fast response
     
-    # Main menu navigation
+    # ========== MAIN MENU NAVIGATION ==========
     if data == "play_zone":
         await game_instructions_menu(callback_query)
     
     elif data == "live_score":
-        await callback_query.message.edit_text("📊 **LIVE SCORES**\n\nNo live matches currently.")
+        await callback_query.message.edit_text(
+            "📊 **LIVE SCORES**\n\n"
+            "No live matches currently.\n\n"
+            "Start a match with /startgame"
+        )
     
     elif data == "updates":
-        await callback_query.message.edit_text("📢 **UPDATES**\n\nJoin @cricket_updates for latest news!")
+        await callback_query.message.edit_text(
+            f"📢 **UPDATES**\n\n"
+            f"[Join Updates Channel]({UPDATES_LINK}) for latest news!"
+        )
     
     elif data == "help_menu":
         from handlers.help import help_command
         class FakeMessage:
-            def __init__(self, chat, from_user, reply_text):
+            def __init__(self, chat, from_user, edit_text):
                 self.chat = chat
                 self.from_user = from_user
-                self.reply_text = reply_text
-        fake_msg = FakeMessage(callback_query.message.chat, callback_query.from_user, callback_query.message.edit_text)
+                self.reply_text = edit_text
+        fake_msg = FakeMessage(
+            callback_query.message.chat,
+            callback_query.from_user,
+            callback_query.message.edit_text
+        )
         await help_command(client, fake_msg)
     
     elif data == "support":
-        await callback_query.message.edit_text("🔗 **SUPPORT**\n\nJoin @cricket_support for help!")
+        await callback_query.message.edit_text(
+            f"🔗 **SUPPORT**\n\n"
+            f"[Join Support Group]({SUPPORT_LINK}) for help!"
+        )
     
     elif data == "add_to_group":
         await callback_query.message.edit_text(
             "➕ **ADD ME TO YOUR GROUP**\n\n"
             "1. Add @cricket_bot to your group\n"
             "2. Make me admin\n"
-            "3. Type /start in group"
+            "3. Type /start in group\n\n"
+            "🔗 [Click here to add bot](https://t.me/cricket_bot?startgroup=true)"
         )
     
     elif data == "developer":
-        await callback_query.message.edit_text("👨‍💻 **DEVELOPER**\n\nBot by @developer")
+        await callback_query.message.edit_text(
+            "👨‍💻 **DEVELOPER**\n\n"
+            "Bot by @developer\n\n"
+            "For queries contact @developer"
+        )
     
+    # ========== GAME INSTRUCTIONS ==========
     elif data == "game_instructions":
         await game_instructions_menu(callback_query)
     
-    # Game modes
-    elif data == "solo_mode":
-        buttons = InlineKeyboardMarkup([
-            [InlineKeyboardButton("◀️ BACK", callback_data="back_to_instructions", style=ButtonStyle.DEFAULT)]
-        ])
-        await callback_query.message.edit_text(
-            "🎯 **SOLO MODE**\n\n/start - Begin solo match\n/joingame - Join match\n/end_match - End game",
-            reply_markup=buttons
-        )
+    # ========== GAME MODES ==========
+    elif data == "solo_mode" or data == "solo_play":
+        await solo_play_callback(callback_query)
     
-    elif data == "team_mode":
+    elif data == "team_mode" or data == "team_play":
         await team_mode_menu(callback_query)
     
-    elif data == "auction_mode":
+    elif data == "auction_mode" or data == "auction":
         await auction_mode_menu(callback_query)
     
-    # Host selection
+    elif data == "vote_game":
+        await vote_game_callback(callback_query)
+    
+    elif data == "solo_tree":
+        await solo_tree_community(callback_query)
+    
+    # ========== HOST SELECTION ==========
+    elif data == "host":
+        await host_callback(callback_query)
+    
     elif data == "host_selected":
         await callback_query.message.edit_text(
             "🏏 **Team Creation**\n\n"
             "Team creation is underway!\n"
             "Join Team A: /join_teamA\n"
             "Join Team B: /join_teamB\n\n"
-            "Check members: /members_list"
+            "Check members: /members_list\n\n"
+            "Type /startgame when teams are ready!"
         )
     
-    # Overs selection
+    # ========== OVERS SELECTION ==========
     elif data.startswith("overs_"):
         overs = int(data.split("_")[1])
         await overs_selected(callback_query, overs)
     
-    # Bowling/Batting
+    # ========== BOWLING SPEEDS ==========
+    elif data.upper() in [s.upper() for s in BOWLING_SPEEDS_BUTTONS]:
+        from handlers.gameplay import bowling_speed_selected
+        await bowling_speed_selected(callback_query, data.upper())
+    
+    # ========== BATTING ACTIONS ==========
+    elif data == "timing":
+        from handlers.gameplay import timing_selected
+        await timing_selected(callback_query)
+    
+    elif data == "direction":
+        from handlers.gameplay import direction_selected
+        await direction_selected(callback_query)
+    
+    elif data == "take_run":
+        from handlers.gameplay import take_run_selected
+        await take_run_selected(callback_query)
+    
+    # ========== BOWLING/BATTING SELECT ==========
     elif data == "bowling_select":
-        buttons = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🏏 /batting", callback_data="batting_select", style=ButtonStyle.SUCCESS)],
-            [InlineKeyboardButton("◀️ BACK", callback_data="back_to_match", style=ButtonStyle.DEFAULT)]
-        ])
-        await callback_query.message.edit_text(
-            "Select bowler using /bowling <player_number>\n\nExample: /bowling 3",
-            reply_markup=buttons
-        )
+        from handlers.gameplay import show_bowling_speed_options
+        await show_bowling_speed_options(callback_query)
     
     elif data == "batting_select":
-        await callback_query.message.edit_text(
-            "Select batsman using /batting <player_number>\n\nExample: /batting 4"
-        )
+        from handlers.gameplay import show_batting_ratings
+        await show_batting_ratings(callback_query)
     
-    # Navigation
+    # ========== AUCTION CALLBACKS ==========
+    elif data == "auction_bid":
+        from handlers.auction import auction_bid_callback
+        await auction_bid_callback(callback_query)
+    
+    elif data == "auction_pause":
+        from handlers.auction import auction_pause_callback
+        await auction_pause_callback(callback_query)
+    
+    elif data == "auction_skip":
+        from handlers.auction import auction_skip_callback
+        await auction_skip_callback(callback_query)
+    
+    # ========== NAVIGATION ==========
     elif data == "home":
         class FakeMessage:
-            def __init__(self, chat, from_user, reply_text):
+            def __init__(self, chat, from_user, edit_text):
                 self.chat = chat
                 self.from_user = from_user
-                self.reply_text = reply_text
-        fake_msg = FakeMessage(callback_query.message.chat, callback_query.from_user, callback_query.message.edit_text)
+                self.reply_text = edit_text
+        fake_msg = FakeMessage(
+            callback_query.message.chat,
+            callback_query.from_user,
+            callback_query.message.edit_text
+        )
         await start_command(client, fake_msg)
+    
+    elif data == "back":
+        await game_instructions_menu(callback_query)
     
     elif data == "back_to_instructions":
         await game_instructions_menu(callback_query)
     
     elif data == "back_to_match":
         await callback_query.message.edit_text(
-            "🏏 **Match**\n\nUse /bowling and /batting commands"
+            "🏏 **Match**\n\n"
+            "Use /bowling and /batting commands to continue the game."
+        )
+    
+    elif data == "back_to_host":
+        await host_callback(callback_query)
+    
+    # ========== DEFAULT ==========
+    else:
+        await callback_query.message.edit_text(
+            "⚠️ **Feature coming soon!**\n\n"
+            "This feature is under development."
         )
