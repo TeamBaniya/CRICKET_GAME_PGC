@@ -1,4 +1,3 @@
-# TODO: Add your code here
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ButtonStyle
 from database import db
@@ -41,7 +40,7 @@ async def start_command(client, message: Message):
         ]
     ])
     
-    await message.reply_text(WELCOME_MESSAGE, reply_markup=buttons)
+    await message.reply_text(WELCOME_MESSAGE, reply_markup=buttons)  # ← Line 51: bracket close ho gaya
 
 async def host_selection(message: Message):
     """I'm the Host button ke baad"""
@@ -51,4 +50,4 @@ async def host_selection(message: Message):
     await message.reply_text(
         "🎮 **New Game Alert!**\n\nWho will be the game host for this match?",
         reply_markup=buttons
-    
+    )
