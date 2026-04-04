@@ -1,10 +1,10 @@
 # TODO: Add your code here
 # MongoDB
-MONGO_URI = "mongodb://localhost:27017"
+MONGO_URI = "mongodb+srv://sparshshivare2606:sparshs2607@cluster0.cvditmt.mongodb.net/?appName=Cluster0"
 DB_NAME = "cricket_bot"
 
 # Bot Token (Yahan apna token dalna)
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+BOT_TOKEN = "8710613096:AAHOqrjfrKU-RNcVGKgHprD6ZW3nUhI-y4U"
 
 # Admin IDs
 ADMIN_IDS = [123456789]  # Apne admin IDs dalo
