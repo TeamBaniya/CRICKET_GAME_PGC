@@ -1,14 +1,17 @@
-# TODO: Add your code here
 from pyrogram import Client
 from pyrogram.types import BotCommand
 from config import BOT_TOKEN
 from handlers import register_handlers
 
+# ✅ Apna API_ID aur API_HASH yahan daalo
+API_ID = 20138139 # <-- Apna ID daalo (number hai)
+API_HASH = "ff813495ed17a07723000a9751f4c3ee"  # <-- Apna Hash daalo (string hai)
+
 bot = Client(
     "cricket_bot",
     bot_token=BOT_TOKEN,
-    api_id=6,  # My.telegram.org se lena
-    api_hash="YOUR_API_HASH"  # My.telegram.org se lena
+    api_id=API_ID,
+    api_hash=API_HASH
 )
 
 async def setup_commands():
