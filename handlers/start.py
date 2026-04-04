@@ -39,16 +39,16 @@ async def start_command(client, message: Message):
         [
             # PLAY ZONE ab ek GROUP LINK kholega
             InlineKeyboardButton("🏏 PLAY ZONE", url=PLAYZONE_LINK, style=ButtonStyle.PRIMARY),
-            InlineKeyboardButton("📊 LIVE SCORE", callback_data="live_score", style=ButtonStyle.DEFAULT)
+            InlineKeyboardButton("📊 LIVE SCORE", callback_data="live_score", style=ButtonStyle.DAMGER)
         ],
         [
             # UPDATES ab ek CHANNEL LINK kholega
             InlineKeyboardButton("📢 UPDATES", url=UPDATES_LINK, style=ButtonStyle.SUCCESS),
-            InlineKeyboardButton("❓ HELP", callback_data="help_menu", style=ButtonStyle.DEFAULT)
+            InlineKeyboardButton("❓ HELP", callback_data="help_menu", style=ButtonStyle.SUCCESS)
         ],
         [
             # SUPPORT ab ek GROUP LINK kholega
-            InlineKeyboardButton("🔗 SUPPORT", url=SUPPORT_LINK, style=ButtonStyle.DEFAULT),
+            InlineKeyboardButton("🔗 SUPPORT", url=SUPPORT_LINK, style=ButtonStyle.PRIMARY),
             InlineKeyboardButton("➕ ADD ME TO GROUP", callback_data="add_to_group", style=ButtonStyle.DANGER)
         ]
     ])
