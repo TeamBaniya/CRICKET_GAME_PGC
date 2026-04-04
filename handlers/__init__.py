@@ -1,5 +1,5 @@
 from handlers.start import start_command, host_callback
-from handlers.help import help_command, game_instructions_callback
+from handlers.help import help_command, game_instructions_menu
 from handlers.team import add_a_command, add_b_command, join_teama_command, join_teamb_command, members_list_command
 from handlers.match import startgame_command
 from handlers.gameplay import bowling_command, batting_command, swap_command, end_match_command
