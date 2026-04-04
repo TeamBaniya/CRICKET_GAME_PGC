@@ -1,15 +1,52 @@
 # TODO: Add your code here
-# MongoDB
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# ========== MONGODB ==========
 MONGO_URI = "mongodb+srv://sparshshivare2606:sparshs2607@cluster0.cvditmt.mongodb.net/?appName=Cluster0"
 DB_NAME = "cricket_bot"
 
-# Bot Token (Yahan apna token dalna)
+# ========== BOT TOKEN ==========
 BOT_TOKEN = "8710613096:AAHOqrjfrKU-RNcVGKgHprD6ZW3nUhI-y4U"
 
-# Admin IDs
+# ========== ADMIN IDs ==========
 ADMIN_IDS = [123456789]  # Apne admin IDs dalo
 
-# Messages
+# ========== LINKS (AAP YAHAN APNE LINKS DAALOGE) ==========
+UPDATES_LINK = "https://t.me/your_updates_channel"      # 📢 UPDATES button
+SUPPORT_LINK = "https://t.me/your_support_group"        # 🔗 SUPPORT button
+PLAYZONE_LINK = "https://t.me/your_playzone_group"      # 🏏 PLAY ZONE button
+LIVE_SCORE_LINK = "https://t.me/your_live_score_channel" # 📊 LIVE SCORE button
+
+# ========== IMAGES/VIDEOS (AAP YAHAN APNE LINKS DAALOGE) ==========
+IMAGE_URL = "https://files.catbox.moe/0odkk1.jpg"           # Welcome image
+HOST_IMAGE_URL = "https://files.catbox.moe/0odkk1.jpg"     # Host selection image
+BOWLING_VIDEO_URL = ""  # Bowling video link daalna (optional)
+BATTING_VIDEO_URL = ""  # Batting video link daalna (optional)
+SIX_VIDEO_URL = ""      # SIX! wala video link
+FOUR_VIDEO_URL = ""     # FOUR! wala video link
+WICKET_VIDEO_URL = ""   # WICKET! wala video link
+
+# ========== GAME SETTINGS ==========
+DEFAULT_OVERS = 2
+MAX_OVERS = 7
+BOWLING_TIMER_SECONDS = 60   # Bowler ke liye 60 seconds
+JOINING_TIMER_SECONDS = 120  # Game join karne ke liye 2 minutes
+
+# ========== BOWLING SPEED OPTIONS ==========
+BOWLING_SPEEDS = ["FANCODE", "TANCODE", "ATHANSTAN", "FAST", "PHYSICAL", "63"]
+
+# ========== BATTING RATINGS ==========
+BATTING_RATINGS = {
+    "ND BAT": 66,
+    "MENTAL": 66,
+    "PACE": 63,
+    "PHYSICAL": 66
+}
+
+# ========== MESSAGES ==========
 WELCOME_MESSAGE = """
 🏏 **CRICKET CHAMPIONSHIP** 🏏
 
@@ -50,10 +87,10 @@ Choose your mode:
 SOLO_MODE_MESSAGE = """
 🎯 **SOLO MODE**
 
-• /start: Begin a solo match
-• /joingame: Join an ongoing solo match
+• /solo_start: Begin a solo match
+• /solo_stats: View your stats
+• /solo_leaderboard: Top players
 • /end_match: End the current game
-• /feedback: Share your feedback
 """
 
 TEAM_MODE_MESSAGE = """
@@ -121,7 +158,110 @@ MATCH_START_MESSAGE = """
 Now, choose your player!
 """
 
-# Button Texts
+# ========== BOWLING MESSAGES ==========
+BOWLING_START_MESSAGE = """
+🎯 **Hey {bowler}, now you're bowling!**
+
+Choose your bowling speed:
+"""
+
+BOWLING_NUMBER_MESSAGE = """
+✅ **Speed {speed} selected!**
+
+Now send number on bot PM (1-6 or W for wicket)
+⏰ You have {seconds} seconds!
+"""
+
+BOWLING_WARNING_30 = """
+⚠️ **Warning: {bowler}, you have 30 seconds left to send a number!**
+"""
+
+BOWLING_WARNING_10 = """
+⚠️ **Warning: {bowler}, you have 10 seconds left to send a number!**
+"""
+
+BOWLING_TIMEOUT = """
+⏰ **No message received from bowler, deducting 6 runs of bowler.**
+❌ **Seems Bowling player is not responding, User Eliminated from the game !!**
+"""
+
+# ========== BATTING MESSAGES ==========
+BATTING_START_MESSAGE = """
+🏏 **Now Batter: {batter} can send number (1-6)!!**
+
+📊 **Ratings:** ND BAT | MENTAL 66 | PACE 63 | PHYSICAL 66
+"""
+
+BATTING_WARNING_30 = """
+⚠️ **Warning: {batter}, you have 30 seconds left to send a number!**
+"""
+
+BATTING_WARNING_10 = """
+⚠️ **Warning: {batter}, you have 10 seconds left to send a number!**
+"""
+
+BATTING_TIMEOUT = """
+⏰ **No message received from batter!**
+"""
+
+# ========== BALL RESULT MESSAGES ==========
+BALL_RESULT_RUN = """
+🏏 **{runs} RUN{'S' if runs > 1 else ''}!**
+
+{run_type}
+⏱️ {response_time}ms
+"""
+
+BALL_RESULT_SIX = """
+🎯 **SIX!** 🚀
+
+{run_type}
+⏱️ {response_time}ms
+"""
+
+BALL_RESULT_FOUR = """
+🎯 **FOUR!** 💥
+
+{run_type}
+⏱️ {response_time}ms
+"""
+
+BALL_RESULT_WICKET = """
+🎯 **WICKET!** 🎯
+
+{wicket_type}
+⏱️ {response_time}ms
+"""
+
+# ========== PLAYER ROTATION ==========
+NEW_BATSMAN_MESSAGE = """
+🔄 **Number matches, {old_batter}**
+
+👋 **Hey {new_batter}, now you're batter!**
+🆕 **New batsman: {new_batter}**
+
+🏀 **Get ready for the next ball!**
+"""
+
+NEW_BOWLER_MESSAGE = """
+🔄 **Hey {new_bowler}, now you're bowling!**
+"""
+
+# ========== SOLO MODE MESSAGES ==========
+SOLO_PLAYER_LIST_HEADER = """
+🏏 **Cricket Game - PCG**
+🎯 **SOLO PLAYERS**
+
+"""
+
+SOLO_PLAYER_FORMAT = """
+{icon} **{name}** = {runs}({balls})
+   • 4s: {fours}, 6s: {sixes}
+   • ID: `{user_id}`
+   • {ball_sequence}
+"""
+
+# ========== BUTTON TEXTS ==========
 BUTTONS = {
     "I_AM_HOST": "🎮 I'm the Host",
     "PLAY_ZONE": "🏏 PLAY ZONE",
@@ -139,9 +279,14 @@ BUTTONS = {
     "BACK": "◀️ BACK",
     "BOWLING": "🏏 /bowling",
     "BATTING": "🏏 /batting",
+    "VOTE_GAME": "🗳️ VOTE GAME",
+    "SOLO_TREE": "🌳 SOLO TREE COMMUNITY",
+    "TIMING": "🎯 TIMING",
+    "DIRECTION": "🎯 DIRECTION",
+    "TAKE_RUN": "🏃 TAKE RUN",
 }
 
-# Callback Data
+# ========== CALLBACK DATA ==========
 CB = {
     "HOST": "host",
     "SOLO": "solo",
@@ -157,7 +302,24 @@ CB = {
     "UPDATES_LINK": "updates_link",
     "SUPPORT_LINK": "support_link",
     "DEVELOPER_INFO": "developer_info",
+    "PLAY_ZONE": "play_zone",
+    "LIVE_SCORE": "live_score",
+    "UPDATES": "updates",
+    "SUPPORT": "support",
+    "VOTE_GAME": "vote_game",
+    "SOLO_TREE": "solo_tree",
+    "SOLO_PLAY": "solo_play",
+    "TEAM_PLAY": "team_play",
+    "TIMING": "timing",
+    "DIRECTION": "direction",
+    "TAKE_RUN": "take_run",
 }
 
-# Overs options
+# ========== OVERS OPTIONS ==========
 OVERS_OPTIONS = [1, 2, 3, 4, 5, 6, 7]
+
+# ========== BOWLING SPEEDS LIST (for buttons) ==========
+BOWLING_SPEEDS_BUTTONS = ["FANCODE", "TANCODE", "ATHANSTAN", "FAST", "PHYSICAL", "63"]
+
+# ========== SOLO PLAYER ICONS ==========
+SOLO_ICONS = ["🟢", "⚽", "🔥", "🌞", "💬", "🎮", "🏀", "🐍", "🕊️"]
