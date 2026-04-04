@@ -43,13 +43,13 @@ async def start_command(client, message: Message):
         ],
         [
             # UPDATES ab ek CHANNEL LINK kholega
-            InlineKeyboardButton("📢 UPDATES", url=UPDATES_LINK, style=ButtonStyle.DEFAULT),
+            InlineKeyboardButton("📢 UPDATES", url=UPDATES_LINK, style=ButtonStyle.SUCCESS),
             InlineKeyboardButton("❓ HELP", callback_data="help_menu", style=ButtonStyle.DEFAULT)
         ],
         [
             # SUPPORT ab ek GROUP LINK kholega
             InlineKeyboardButton("🔗 SUPPORT", url=SUPPORT_LINK, style=ButtonStyle.DEFAULT),
-            InlineKeyboardButton("➕ ADD ME TO GROUP", callback_data="add_to_group", style=ButtonStyle.SUCCESS)
+            InlineKeyboardButton("➕ ADD ME TO GROUP", callback_data="add_to_group", style=ButtonStyle.DANGER)
         ]
     ])
 
