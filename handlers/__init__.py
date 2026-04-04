@@ -7,6 +7,7 @@ from handlers.auction import add_cap_command, rm_cap_command, cap_change_command
 from handlers.callback import callback_handler
 
 async def register_handlers(client, message):
+    # ✅ PUBLIC BOT - No admin check, sabko access hai
     text = message.text.lower() if message.text else ""
     
     # Commands
@@ -57,6 +58,6 @@ async def register_handlers(client, message):
         await unhold_command(client, message)
     elif text == "/rm_auction_id":
         await rm_auction_id_command(client, message)
-    # Callback query
+    # Callback query (button clicks)
     elif message.callback_query:
         await callback_handler(client, message.callback_query)
