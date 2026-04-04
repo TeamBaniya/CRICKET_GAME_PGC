@@ -39,7 +39,7 @@ async def start_command(client, message: Message):
         [
             # PLAY ZONE ab ek GROUP LINK kholega
             InlineKeyboardButton("🏏 PLAY ZONE", url=PLAYZONE_LINK, style=ButtonStyle.PRIMARY),
-            InlineKeyboardButton("📊 LIVE SCORE", callback_data="live_score", style=ButtonStyle.DAMGER)
+            InlineKeyboardButton("📊 LIVE SCORE", callback_data="live_score", style=ButtonStyle.DANGER)
         ],
         [
             # UPDATES ab ek CHANNEL LINK kholega
