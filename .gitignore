@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Bot specific
+bot_session.session
+*.session
+*.session-journal
+
+# Uploads
+downloads/
+uploads/
+temp/
+media/
+
+# Docker
+*.pid
+docker-compose.override.yml
+
+# Secrets
+secrets/
+config.local.py
+credentials.json
+token.pickle
+
+# Backup
+*.bak
+*.backup
+*.old
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Redis
+dump.rdb
+
+# MongoDB
+mongod.lock
+dump/
+
+# Prometheus
+prometheus_data/
+
+# Grafana
+grafana_data/
+
+# Health check
+healthcheck.txt
