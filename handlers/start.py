@@ -1,5 +1,4 @@
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram.enums import ButtonStyle
 from database import db
 
 WELCOME_MESSAGE = """
@@ -24,30 +23,31 @@ async def start_command(client, message: Message):
         "state": "MAIN_MENU"
     })
     
-    # Main menu with ButtonStyle
+    # Main menu buttons
     buttons = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🏏 PLAY ZONE", callback_data="play_zone", style=ButtonStyle.PRIMARY),
-            InlineKeyboardButton("📊 LIVE SCORE", callback_data="live_score", style=ButtonStyle.DEFAULT)
+            InlineKeyboardButton("🏏 PLAY ZONE", callback_data="play_zone"),
+            InlineKeyboardButton("📊 LIVE SCORE", callback_data="live_score")
         ],
         [
-            InlineKeyboardButton("📢 UPDATES", callback_data="updates", style=ButtonStyle.DEFAULT),
-            InlineKeyboardButton("❓ HELP", callback_data="help_menu", style=ButtonStyle.DEFAULT)
+            InlineKeyboardButton("📢 UPDATES", callback_data="updates"),
+            InlineKeyboardButton("❓ HELP", callback_data="help_menu")
         ],
         [
-            InlineKeyboardButton("🔗 SUPPORT", callback_data="support", style=ButtonStyle.DEFAULT),
-            InlineKeyboardButton("➕ ADD ME TO GROUP", callback_data="add_to_group", style=ButtonStyle.SUCCESS)
+            InlineKeyboardButton("🔗 SUPPORT", callback_data="support"),
+            InlineKeyboardButton("➕ ADD ME TO GROUP", callback_data="add_to_group")
         ]
     ])
     
-    await message.reply_text(WELCOME_MESSAGE, reply_markup=buttons)  # ← Line 51: bracket close ho gaya
+    await message.reply_text(WELCOME_MESSAGE, reply_markup=buttons)
 
-async def host_selection(message: Message):
-    """I'm the Host button ke baad"""
+async def host_callback(callback_query):
+    """Host selection callback handler"""
     buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🎮 I'm the Host", callback_data="host_selected", style=ButtonStyle.PRIMARY)]
+        [InlineKeyboardButton("🎮 I'm the Host", callback_data="host_selected")]
     ])
-    await message.reply_text(
+    await callback_query.message.edit_text(
         "🎮 **New Game Alert!**\n\nWho will be the game host for this match?",
         reply_markup=buttons
     )
+    await callback_query.answer()
