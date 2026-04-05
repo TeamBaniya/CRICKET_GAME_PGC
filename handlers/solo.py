@@ -6,7 +6,7 @@ from datetime import datetime
 import random
 import asyncio
 
-# Store active solo games
+# Store active solo games (user_id based - works in both DM and Group)
 solo_games = {}
 solo_timers = {}
 
@@ -22,7 +22,7 @@ SOLO_BOWLERS = [
 
 
 async def solo_play_command(client, message: Message):
-    """Solo play command - Show solo mode menu"""
+    """Solo play command - Show solo mode menu (works in DM and Group)"""
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🎮 Start Solo Match", callback_data="solo_start", style=ButtonStyle.SUCCESS),
@@ -40,15 +40,17 @@ async def solo_play_command(client, message: Message):
         "• **Start Solo Match** - Play a new match\n"
         "• **My Stats** - View your statistics\n"
         "• **Leaderboard** - Top players list\n\n"
-        "Send numbers 1-6 to play your shots!",
+        "Send numbers **1-6** on bot PM to play your shots!\n"
+        "Type **W** for wicket!",
         reply_markup=buttons
     )
 
 
 async def solo_start_command(client, message: Message):
-    """Start a solo match with 3 bowlers"""
+    """Start a solo match with 3 bowlers (works in DM and Group)"""
     user_id = message.from_user.id
     user_name = message.from_user.first_name
+    chat_id = message.chat.id
     
     # Check if already in game
     if user_id in solo_games:
@@ -59,6 +61,7 @@ async def solo_start_command(client, message: Message):
     solo_games[user_id] = {
         "user_id": user_id,
         "user_name": user_name,
+        "chat_id": chat_id,
         "runs": 0,
         "balls": 0,
         "wickets": 0,
@@ -100,6 +103,7 @@ async def solo_start_command(client, message: Message):
     await message.reply_text(
         f"🏏 **SOLO MATCH STARTED!**\n\n"
         f"👤 **Player:** {user_name}\n"
+        f"📍 **Chat:** {'Group' if message.chat.type in ['group', 'supergroup'] else 'Private'}\n"
         f"🎯 **You will face 3 bowlers:**\n"
         f"   {SOLO_BOWLERS[0]['icon']} {SOLO_BOWLERS[0]['name']}\n"
         f"   {SOLO_BOWLERS[1]['icon']} {SOLO_BOWLERS[1]['name']}\n"
@@ -108,7 +112,7 @@ async def solo_start_command(client, message: Message):
         f"🎯 **Ratings:** ND BAT | MENTAL 66 | PACE 63 | PHYSICAL 66\n\n"
         f"⚡ **First Bowler:** {first_bowler['icon']} {first_bowler['name']}\n\n"
         f"Send numbers **1-6** on bot PM to play your shots!\n"
-        f"Type **W** for wicket (if you want to get out!)\n\n"
+        f"Type **W** for wicket!\n\n"
         f"Click **Play Ball** to start!",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🏏 Play Ball", callback_data="solo_play_ball", style=ButtonStyle.PRIMARY)],
@@ -305,12 +309,13 @@ async def save_solo_match_result(user_id: int, game: dict):
         "fours": game["fours"],
         "sixes": game["sixes"],
         "ball_sequence": game["ball_sequence"],
+        "chat_id": game.get("chat_id"),
         "created_at": datetime.now()
     })
 
 
 async def solo_stats_command(client, message: Message):
-    """Show solo player statistics"""
+    """Show solo player statistics (works in DM and Group)"""
     user_id = message.from_user.id
     
     player = await db.get_solo_player(user_id)
@@ -347,7 +352,7 @@ async def solo_stats_command(client, message: Message):
 
 
 async def solo_leaderboard_command(client, message: Message):
-    """Show solo leaderboard"""
+    """Show solo leaderboard (works in DM and Group)"""
     players = await db.get_all_solo_players(limit=20)
     
     if not players:
