@@ -1,11 +1,11 @@
 from pyrogram import Client
-from pyrogram.types import BotCommand
+from pyrogram.types import BotCommand, CallbackQuery
 from config import BOT_TOKEN
 from handlers import register_handlers
 
 # ✅ Apna API_ID aur API_HASH yahan daalo
-API_ID = 20138139 # <-- Apna ID daalo (number hai)
-API_HASH = "ff813495ed17a07723000a9751f4c3ee"  # <-- Apna Hash daalo (string hai)
+API_ID = 20138139
+API_HASH = "ff813495ed17a07723000a9751f4c3ee"
 
 bot = Client(
     "cricket_bot",
@@ -26,6 +26,10 @@ async def setup_commands():
         BotCommand("join_teamA", "Join Team A"),
         BotCommand("join_teamB", "Join Team B"),
         BotCommand("end_match", "End current match"),
+        BotCommand("solo", "Solo mode"),
+        BotCommand("solo_start", "Start solo match"),
+        BotCommand("joingame", "Join game"),
+        BotCommand("vote_game", "Start voting session"),
         BotCommand("feedback", "Give feedback"),
     ]
     await bot.set_bot_commands(commands)
@@ -34,6 +38,13 @@ async def setup_commands():
 async def main_handler(client, message):
     await register_handlers(client, message)
 
+# ✅ Callback query handler for button clicks
+@bot.on_callback_query()
+async def callback_handler_wrapper(client, callback_query: CallbackQuery):
+    from handlers.callback import callback_handler
+    await callback_handler(client, callback_query)
+
 if __name__ == "__main__":
     print("🤖 Bot Starting...")
+    print("✅ Bot is running! Press Ctrl+C to stop.")
     bot.run()
