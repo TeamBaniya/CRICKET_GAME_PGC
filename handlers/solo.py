@@ -6,9 +6,10 @@ from datetime import datetime
 import random
 import asyncio
 
-# Store active solo games (user_id based - works in both DM and Group)
+# Store active solo games
 solo_games = {}
 solo_timers = {}
+solo_multi_players = {}  # Store multi-player games by chat_id
 
 # Solo player icons
 SOLO_ICONS = ["🟢", "⚽", "🔥", "🌞", "💬", "🎮", "🏀", "🐍", "🕊️", "⭐", "⚡", "💎"]
@@ -47,17 +48,29 @@ async def solo_play_command(client, message: Message):
 
 
 async def solo_start_command(client, message: Message):
-    """Start a solo match with 3 bowlers (works in DM and Group)"""
+    """Start a solo match - Single player in DM, Multi-player in Group"""
     user_id = message.from_user.id
     user_name = message.from_user.first_name
     chat_id = message.chat.id
+    chat_type = message.chat.type
     
-    # Check if already in game
+    # In DM (Private) - Single player mode
+    if chat_type == "private":
+        await solo_start_single(client, message, user_id, user_name, chat_id)
+        return
+    
+    # In Group - Multi-player mode
+    if chat_type in ["group", "supergroup"]:
+        await solo_start_multi(client, message, user_id, user_name, chat_id)
+        return
+
+
+async def solo_start_single(client, message, user_id, user_name, chat_id):
+    """Single player solo mode (DM)"""
     if user_id in solo_games:
         await message.reply_text("❌ You already have an active solo game! Finish it first.")
         return
     
-    # Create new solo game with 3 bowlers
     solo_games[user_id] = {
         "user_id": user_id,
         "user_name": user_name,
@@ -71,15 +84,175 @@ async def solo_start_command(client, message: Message):
         "status": "batting",
         "current_ball": 0,
         "current_bowler_index": 0,
-        "max_balls_per_bowler": 6,  # 6 balls per bowler
+        "max_balls_per_bowler": 6,
         "total_bowlers": 3,
         "current_bowler": SOLO_BOWLERS[0],
         "bowler_number": None,
         "batter_number": None,
+        "mode": "single",
         "created_at": datetime.now()
     }
     
-    # Get or create solo player stats
+    await create_or_get_player(user_id, user_name)
+    first_bowler = SOLO_BOWLERS[0]
+    
+    await message.reply_text(
+        f"🏏 **SOLO MATCH STARTED!**\n\n"
+        f"👤 **Player:** {user_name}\n"
+        f"🎯 **3 Bowlers:** {SOLO_BOWLERS[0]['icon']} {SOLO_BOWLERS[0]['name']}, {SOLO_BOWLERS[1]['icon']} {SOLO_BOWLERS[1]['name']}, {SOLO_BOWLERS[2]['icon']} {SOLO_BOWLERS[2]['name']}\n\n"
+        f"📊 **Format:** 18 balls\n"
+        f"⚡ **First Bowler:** {first_bowler['icon']} {first_bowler['name']}\n\n"
+        f"Send numbers **1-6** on bot PM to play!",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🏏 Play Ball", callback_data="solo_play_ball", style=ButtonStyle.PRIMARY)],
+            [InlineKeyboardButton("❌ End Match", callback_data="solo_end_match", style=ButtonStyle.DANGER)]
+        ])
+    )
+
+
+async def solo_start_multi(client, message, user_id, user_name, chat_id):
+    """Multi-player solo mode (Group) - Elimination style"""
+    
+    # Check if game already exists in this group
+    if chat_id in solo_multi_players:
+        game = solo_multi_players[chat_id]
+        if game["status"] == "waiting":
+            # Already a game waiting for players
+            if user_id in [p["user_id"] for p in game["players"]]:
+                await message.reply_text("❌ You already joined this game!")
+                return
+            game["players"].append({"user_id": user_id, "name": user_name, "runs": 0, "balls": 0, "status": "waiting"})
+            await message.reply_text(f"✅ **{user_name} joined the game!** ({len(game['players'])} players)")
+            
+            # Update game message
+            players_list = "\n".join([f"• {p['name']}" for p in game["players"]])
+            await client.edit_message_text(
+                chat_id,
+                game["message_id"],
+                f"🏏 **SOLO TOURNAMENT!**\n\n"
+                f"**Players joined:**\n{players_list}\n\n"
+                f"Type `/solo_start` to join!\n"
+                f"Game will start in 60 seconds or when host clicks Start!"
+            )
+            return
+    
+    # Check if user is host and game exists
+    if chat_id in solo_multi_players and solo_multi_players[chat_id]["status"] == "waiting":
+        game = solo_multi_players[chat_id]
+        if game["host_id"] == user_id:
+            # Host is starting the game
+            if len(game["players"]) < 2:
+                await message.reply_text("❌ Need at least 2 players to start the game!")
+                return
+            
+            game["status"] = "playing"
+            game["current_player_index"] = 0
+            await start_multi_player_turn(client, chat_id)
+            return
+    
+    # Create new multi-player game
+    solo_multi_players[chat_id] = {
+        "host_id": user_id,
+        "host_name": user_name,
+        "players": [{"user_id": user_id, "name": user_name, "runs": 0, "balls": 0, "status": "playing"}],
+        "status": "waiting",
+        "current_player_index": 0,
+        "message_id": None,
+        "created_at": datetime.now()
+    }
+    
+    msg = await message.reply_text(
+        f"🏏 **SOLO TOURNAMENT STARTED!**\n\n"
+        f"👤 **Host:** {user_name}\n"
+        f"📊 **Players joined:** 1\n\n"
+        f"Type `/solo_start` to join the game!\n"
+        f"Host will start the game when ready.",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🎮 Start Game", callback_data="solo_multi_start", style=ButtonStyle.SUCCESS)],
+            [InlineKeyboardButton("❌ Cancel", callback_data="solo_multi_cancel", style=ButtonStyle.DANGER)]
+        ])
+    )
+    solo_multi_players[chat_id]["message_id"] = msg.id
+
+
+async def start_multi_player_turn(client, chat_id):
+    """Start next player's turn in multi-player game"""
+    game = solo_multi_players[chat_id]
+    current_index = game["current_player_index"]
+    
+    if current_index >= len(game["players"]):
+        # Game over - declare winner
+        winner = max(game["players"], key=lambda x: x["runs"])
+        await client.send_message(
+            chat_id,
+            f"🏆 **TOURNAMENT ENDED!** 🏆\n\n"
+            f"🥇 **WINNER:** {winner['name']} with {winner['runs']} runs!\n\n"
+            f"📊 **Final Scores:**\n" + "\n".join([f"• {p['name']}: {p['runs']} runs" for p in game["players"]]),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🎮 New Tournament", callback_data="solo_multi_new", style=ButtonStyle.SUCCESS)]
+            ])
+        )
+        del solo_multi_players[chat_id]
+        return
+    
+    current_player = game["players"][current_index]
+    
+    # Create solo game for this player
+    solo_games[current_player["user_id"]] = {
+        "user_id": current_player["user_id"],
+        "user_name": current_player["name"],
+        "chat_id": chat_id,
+        "runs": 0,
+        "balls": 0,
+        "wickets": 0,
+        "fours": 0,
+        "sixes": 0,
+        "ball_sequence": [],
+        "status": "batting",
+        "current_ball": 0,
+        "current_bowler_index": 0,
+        "max_balls_per_bowler": 6,
+        "total_bowlers": 3,
+        "current_bowler": SOLO_BOWLERS[0],
+        "bowler_number": None,
+        "batter_number": None,
+        "mode": "multi",
+        "multi_chat_id": chat_id,
+        "created_at": datetime.now()
+    }
+    
+    await client.send_message(
+        chat_id,
+        f"🏏 **{current_player['name']}'s TURN!**\n\n"
+        f"⚡ **Bowler:** {SOLO_BOWLERS[0]['icon']} {SOLO_BOWLERS[0]['name']}\n"
+        f"Send numbers **1-6** on bot PM to play!\n"
+        f"Type **W** for wicket!\n\n"
+        f"⏰ You have 60 seconds!"
+    )
+    
+    # Start timer for this player
+    asyncio.create_task(multi_player_timer(client, chat_id, current_player["user_id"], current_player["name"]))
+
+
+async def multi_player_timer(client, chat_id, user_id, player_name):
+    """60 second timer for multi-player turn"""
+    await asyncio.sleep(60)
+    
+    if chat_id in solo_multi_players:
+        game = solo_multi_players[chat_id]
+        current_index = game["current_player_index"]
+        if current_index < len(game["players"]) and game["players"][current_index]["user_id"] == user_id:
+            # Player timed out - eliminate
+            await client.send_message(
+                chat_id,
+                f"⏰ **{player_name} timed out! Eliminated from the game!**"
+            )
+            game["players"].pop(current_index)
+            await start_multi_player_turn(client, chat_id)
+
+
+async def create_or_get_player(user_id, user_name):
+    """Create or get solo player stats"""
     player = await db.get_solo_player(user_id)
     if not player:
         icon = SOLO_ICONS[user_id % len(SOLO_ICONS)]
@@ -96,29 +269,6 @@ async def solo_start_command(client, message: Message):
             "ball_sequences": [],
             "created_at": datetime.now()
         })
-    
-    # Show first bowler
-    first_bowler = SOLO_BOWLERS[0]
-    
-    await message.reply_text(
-        f"🏏 **SOLO MATCH STARTED!**\n\n"
-        f"👤 **Player:** {user_name}\n"
-        f"📍 **Chat:** {'Group' if message.chat.type in ['group', 'supergroup'] else 'Private'}\n"
-        f"🎯 **You will face 3 bowlers:**\n"
-        f"   {SOLO_BOWLERS[0]['icon']} {SOLO_BOWLERS[0]['name']}\n"
-        f"   {SOLO_BOWLERS[1]['icon']} {SOLO_BOWLERS[1]['name']}\n"
-        f"   {SOLO_BOWLERS[2]['icon']} {SOLO_BOWLERS[2]['name']}\n\n"
-        f"📊 **Format:** 3 bowlers × 6 balls = 18 balls\n\n"
-        f"🎯 **Ratings:** ND BAT | MENTAL 66 | PACE 63 | PHYSICAL 66\n\n"
-        f"⚡ **First Bowler:** {first_bowler['icon']} {first_bowler['name']}\n\n"
-        f"Send numbers **1-6** on bot PM to play your shots!\n"
-        f"Type **W** for wicket!\n\n"
-        f"Click **Play Ball** to start!",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🏏 Play Ball", callback_data="solo_play_ball", style=ButtonStyle.PRIMARY)],
-            [InlineKeyboardButton("❌ End Match", callback_data="solo_end_match", style=ButtonStyle.DANGER)]
-        ])
-    )
 
 
 async def solo_play_ball_callback(callback_query: CallbackQuery):
@@ -144,8 +294,7 @@ async def solo_play_ball_callback(callback_query: CallbackQuery):
         f"⚡ **Current Bowler:** {current_bowler['icon']} {current_bowler['name']}\n"
         f"📊 **Score:** {game['runs']}/{game['wickets']}\n"
         f"📈 **Balls:** {game['current_ball']}/{game['total_bowlers'] * game['max_balls_per_bowler']}\n"
-        f"🎯 **Balls left this bowler:** {balls_left_this_bowler}\n"
-        f"🎯 **Ratings:** ND BAT | MENTAL 66 | PACE 63 | PHYSICAL 66\n\n"
+        f"🎯 **Balls left this bowler:** {balls_left_this_bowler}\n\n"
         f"**Send number (1-6) on bot PM!**"
     )
     await callback_query.answer()
@@ -161,13 +310,11 @@ async def solo_play_number(user_id: int, number: int):
     if game["status"] != "batting":
         return None
     
-    # Get bowler's number (store previous or random)
     bowler_num = game.get("bowler_number", random.randint(1, 6))
     game["batter_number"] = number
     
     # CHECK IF OUT (Numbers match)
     if bowler_num == number:
-        # WICKET!
         game["wickets"] += 1
         game["balls"] += 1
         game["current_ball"] += 1
@@ -188,10 +335,11 @@ async def solo_play_number(user_id: int, number: int):
         if is_match_over:
             await save_solo_match_result(user_id, game)
             solo_games[user_id]["status"] = "completed"
+            # If multi-player mode, move to next player
+            if game.get("mode") == "multi":
+                await handle_multi_player_elimination(user_id, game)
         else:
-            # Check if bowler's 6 balls are over
             if game["current_ball"] % game["max_balls_per_bowler"] == 0:
-                # Switch to next bowler
                 next_bowler_index = game["current_bowler_index"] + 1
                 if next_bowler_index < game["total_bowlers"]:
                     game["current_bowler_index"] = next_bowler_index
@@ -212,7 +360,6 @@ async def solo_play_number(user_id: int, number: int):
     elif runs == 6:
         game["sixes"] += 1
     
-    # Clear bowler number for next ball (new random each ball)
     game["bowler_number"] = None
     
     is_match_over = game["current_ball"] >= (game["total_bowlers"] * game["max_balls_per_bowler"]) or game["wickets"] >= 10
@@ -229,9 +376,7 @@ async def solo_play_number(user_id: int, number: int):
         "batter_num": number
     }
     
-    # Check if bowler's 6 balls are over and not match over
     if not is_match_over and game["current_ball"] % game["max_balls_per_bowler"] == 0:
-        # Switch to next bowler
         next_bowler_index = game["current_bowler_index"] + 1
         if next_bowler_index < game["total_bowlers"]:
             game["current_bowler_index"] = next_bowler_index
@@ -241,8 +386,48 @@ async def solo_play_number(user_id: int, number: int):
     if is_match_over:
         await save_solo_match_result(user_id, game)
         solo_games[user_id]["status"] = "completed"
+        if game.get("mode") == "multi":
+            await handle_multi_player_completion(user_id, game)
     
     return result
+
+
+async def handle_multi_player_elimination(user_id, game):
+    """Handle player elimination in multi-player mode"""
+    chat_id = game.get("multi_chat_id")
+    if chat_id and chat_id in solo_multi_players:
+        multi_game = solo_multi_players[chat_id]
+        current_index = multi_game["current_player_index"]
+        
+        # Update player's score
+        for p in multi_game["players"]:
+            if p["user_id"] == user_id:
+                p["runs"] = game["runs"]
+                p["status"] = "eliminated"
+                break
+        
+        # Move to next player
+        multi_game["current_player_index"] = current_index + 1
+        await start_multi_player_turn(callback_query._client, chat_id)
+
+
+async def handle_multi_player_completion(user_id, game):
+    """Handle player completing all balls in multi-player mode"""
+    chat_id = game.get("multi_chat_id")
+    if chat_id and chat_id in solo_multi_players:
+        multi_game = solo_multi_players[chat_id]
+        current_index = multi_game["current_player_index"]
+        
+        # Update player's score
+        for p in multi_game["players"]:
+            if p["user_id"] == user_id:
+                p["runs"] = game["runs"]
+                p["status"] = "completed"
+                break
+        
+        # Move to next player
+        multi_game["current_player_index"] = current_index + 1
+        await start_multi_player_turn(callback_query._client, chat_id)
 
 
 async def solo_wicket(user_id: int):
@@ -300,7 +485,6 @@ async def save_solo_match_result(user_id: int, game: dict):
             "last_active": datetime.now()
         })
     
-    # Save match record
     await db.save_solo_match({
         "user_id": user_id,
         "user_name": game["user_name"],
@@ -310,21 +494,19 @@ async def save_solo_match_result(user_id: int, game: dict):
         "sixes": game["sixes"],
         "ball_sequence": game["ball_sequence"],
         "chat_id": game.get("chat_id"),
+        "mode": game.get("mode", "single"),
         "created_at": datetime.now()
     })
 
 
 async def solo_stats_command(client, message: Message):
-    """Show solo player statistics (works in DM and Group)"""
+    """Show solo player statistics"""
     user_id = message.from_user.id
     
     player = await db.get_solo_player(user_id)
     
     if not player:
-        await message.reply_text(
-            "📊 **No stats found!**\n\n"
-            "Play your first solo match with /solo_start"
-        )
+        await message.reply_text("📊 **No stats found!**\n\nPlay your first solo match with /solo_start")
         return
     
     strike_rate = (player.get("total_runs", 0) / max(player.get("total_balls", 1), 1)) * 100
@@ -352,7 +534,7 @@ async def solo_stats_command(client, message: Message):
 
 
 async def solo_leaderboard_command(client, message: Message):
-    """Show solo leaderboard (works in DM and Group)"""
+    """Show solo leaderboard"""
     players = await db.get_all_solo_players(limit=20)
     
     if not players:
@@ -378,23 +560,15 @@ async def solo_tree_community(callback_query: CallbackQuery):
     players = await db.get_all_solo_players(limit=50)
     
     if not players:
-        await callback_query.message.edit_text(
-            "🌳 **SOLO TREE COMMUNITY**\n\n"
-            "No solo players yet!\n\n"
-            "Be the first to join with /solo_start"
-        )
+        await callback_query.message.edit_text("🌳 **SOLO TREE COMMUNITY**\n\nNo solo players yet!\n\nBe the first to join with /solo_start")
         await callback_query.answer()
         return
     
-    player_list = "🌳 **SOLO TREE COMMUNITY**\n\n"
-    player_list += "**Solo Players**\n\n"
+    player_list = "🌳 **SOLO TREE COMMUNITY**\n\n**Solo Players**\n\n"
     
     for i, player in enumerate(players[:20], 1):
         ball_seq = player.get("ball_sequences", [])
-        if ball_seq and len(ball_seq) > 0:
-            seq_str = ", ".join(str(s) for s in ball_seq[-6:])
-        else:
-            seq_str = "No balls yet"
+        seq_str = ", ".join(str(s) for s in ball_seq[-6:]) if ball_seq else "No balls yet"
         
         player_list += f"{i}. {player.get('icon', '🏏')} **{player.get('name', 'Unknown')}** = {player.get('total_runs', 0)}({player.get('total_balls', 0)})\n"
         player_list += f"   • 4s: {player.get('total_fours', 0):02d}, 6s: {player.get('total_sixes', 0):02d}\n"
@@ -411,13 +585,11 @@ async def solo_tree_community(callback_query: CallbackQuery):
 
 
 async def solo_play_callback(callback_query: CallbackQuery):
-    """Solo play callback"""
     await solo_play_command(callback_query._client, callback_query.message)
     await callback_query.answer()
 
 
 async def solo_end_match_callback(callback_query: CallbackQuery):
-    """End solo match callback"""
     user_id = callback_query.from_user.id
     
     if user_id in solo_games:
@@ -436,4 +608,46 @@ async def solo_end_match_callback(callback_query: CallbackQuery):
     else:
         await callback_query.message.edit_text("❌ No active solo game found!")
     
+    await callback_query.answer()
+
+
+async def solo_multi_start_callback(callback_query: CallbackQuery):
+    """Start multi-player game from button"""
+    chat_id = callback_query.message.chat.id
+    user_id = callback_query.from_user.id
+    
+    if chat_id in solo_multi_players:
+        game = solo_multi_players[chat_id]
+        if game["host_id"] == user_id:
+            if len(game["players"]) < 2:
+                await callback_query.answer("Need at least 2 players!", show_alert=True)
+                return
+            game["status"] = "playing"
+            game["current_player_index"] = 0
+            await start_multi_player_turn(callback_query._client, chat_id)
+            await callback_query.answer("Game started!")
+        else:
+            await callback_query.answer("Only host can start the game!", show_alert=True)
+    else:
+        await callback_query.answer("No game found!", show_alert=True)
+
+
+async def solo_multi_cancel_callback(callback_query: CallbackQuery):
+    """Cancel multi-player game"""
+    chat_id = callback_query.message.chat.id
+    user_id = callback_query.from_user.id
+    
+    if chat_id in solo_multi_players:
+        game = solo_multi_players[chat_id]
+        if game["host_id"] == user_id:
+            del solo_multi_players[chat_id]
+            await callback_query.message.edit_text("❌ Tournament cancelled!")
+        else:
+            await callback_query.answer("Only host can cancel!", show_alert=True)
+    await callback_query.answer()
+
+
+async def solo_multi_new_callback(callback_query: CallbackQuery):
+    """Start new tournament"""
+    await callback_query.message.delete()
     await callback_query.answer()
