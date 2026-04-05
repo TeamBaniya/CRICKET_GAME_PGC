@@ -18,18 +18,19 @@ async def setup_commands():
     commands = [
         BotCommand("start", "Start the bot"),
         BotCommand("help", "Get help"),
-        BotCommand("startgame", "Start the game"),
-        BotCommand("bowling", "Choose bowler"),
-        BotCommand("batting", "Choose batsman"),
+        BotCommand("startgame", "Start team match"),
+        BotCommand("solo", "Solo mode menu"),
+        BotCommand("solo_start", "Start solo match"),
+        BotCommand("bowling", "Select bowling speed"),
+        BotCommand("batting", "Play as batsman"),
+        BotCommand("joingame", "Join existing game"),
+        BotCommand("vote_game", "Start voting session"),
         BotCommand("add_A", "Add member to Team A"),
         BotCommand("add_B", "Add member to Team B"),
         BotCommand("join_teamA", "Join Team A"),
         BotCommand("join_teamB", "Join Team B"),
+        BotCommand("members_list", "Show team members"),
         BotCommand("end_match", "End current match"),
-        BotCommand("solo", "Solo mode"),
-        BotCommand("solo_start", "Start solo match"),
-        BotCommand("joingame", "Join game"),
-        BotCommand("vote_game", "Start voting session"),
         BotCommand("feedback", "Give feedback"),
     ]
     await bot.set_bot_commands(commands)
@@ -45,6 +46,12 @@ async def callback_handler_wrapper(client, callback_query: CallbackQuery):
     await callback_handler(client, callback_query)
 
 if __name__ == "__main__":
-    print("🤖 Bot Starting...")
+    print("🤖 Cricket Bot Starting...")
     print("✅ Bot is running! Press Ctrl+C to stop.")
+    print("📊 Commands registered:")
+    print("   • /start - Welcome message")
+    print("   • /solo - Solo mode")
+    print("   • /startgame - Team match")
+    print("   • /bowling /batting - Gameplay")
+    print("   • /help - Help menu")
     bot.run()
