@@ -205,7 +205,8 @@ async def update_match_score(chat_id, runs, is_wicket=False):
     # Check if innings is over
     if match["current_balls"] >= match["total_balls"] or match["current_wickets"] >= 10:
         match["status"] = "completed"
-        await db.update_match(match["match_id"], {"status": "completed", "final_score": f"{match['current_runs']}/{match['current_wickets}]"})
+        # ✅ FIXED: Added missing closing bracket
+        await db.update_match(match["match_id"], {"status": "completed", "final_score": f"{match['current_runs']}/{match['current_wickets']}"})
     
     return match
 
