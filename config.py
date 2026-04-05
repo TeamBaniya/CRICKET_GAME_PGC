@@ -23,11 +23,12 @@ LIVE_SCORE_LINK = "https://t.me/your_live_score_channel" # 📊 LIVE SCORE butto
 # ========== IMAGES/VIDEOS (AAP YAHAN APNE LINKS DAALOGE) ==========
 IMAGE_URL = "https://files.catbox.moe/0odkk1.jpg"           # Welcome image
 HOST_IMAGE_URL = "https://files.catbox.moe/0odkk1.jpg"     # Host selection image
-BOWLING_VIDEO_URL = ""  # Bowling video link daalna (optional)
-BATTING_VIDEO_URL = ""  # Batting video link daalna (optional)
-SIX_VIDEO_URL = ""      # SIX! wala video link
-FOUR_VIDEO_URL = ""     # FOUR! wala video link
-WICKET_VIDEO_URL = ""   # WICKET! wala video link
+BOWLING_VIDEO_URL = "https://files.catbox.moe/r75e19.mp4"  # Bowling video
+BATTING_VIDEO_URL = "https://files.catbox.moe/26qdaw.mp4"  # Batting video
+SIX_VIDEO_URL = ""      # SIX! wala video link (optional)
+FOUR_VIDEO_URL = ""     # FOUR! wala video link (optional)
+WICKET_VIDEO_URL = "https://files.catbox.moe/7ixfhp.mp4"   # WICKET! video
+OUT_VIDEO_URL = "https://files.catbox.moe/7ixfhp.mp4"      # OUT video (same as wicket)
 
 # ========== GAME SETTINGS ==========
 DEFAULT_OVERS = 2
@@ -37,6 +38,7 @@ JOINING_TIMER_SECONDS = 120  # Game join karne ke liye 2 minutes
 
 # ========== BOWLING SPEED OPTIONS ==========
 BOWLING_SPEEDS = ["FANCODE", "TANCODE", "ATHANSTAN", "FAST", "PHYSICAL", "63"]
+BOWLING_SPEEDS_BUTTONS = ["FANCODE", "TANCODE", "ATHANSTAN", "FAST", "PHYSICAL", "63"]
 
 # ========== BATTING RATINGS ==========
 BATTING_RATINGS = {
@@ -46,7 +48,17 @@ BATTING_RATINGS = {
     "PHYSICAL": 66
 }
 
-# ========== WELCOME CAPTION (for start.py) ==========
+# ========== SOLO MODE BOWLERS ==========
+SOLO_BOWLERS = [
+    {"name": "Fast Bowler", "icon": "⚡", "speed": "FAST"},
+    {"name": "Spin Bowler", "icon": "🔄", "speed": "SPIN"},
+    {"name": "Pace Bowler", "icon": "💨", "speed": "PACE"}
+]
+
+# ========== SOLO PLAYER ICONS ==========
+SOLO_ICONS = ["🟢", "⚽", "🔥", "🌞", "💬", "🎮", "🏀", "🐍", "🕊️", "⭐", "⚡", "💎"]
+
+# ========== WELCOME CAPTION ==========
 WELCOME_CAPTION = """
 🏏 **𝐖ᴇʟᴄᴏᴍᴇ 𝐭ᴏ 𝐂ʀɪᴄᴋᴇᴛ 𝐁ᴏᴛ!**
 
@@ -330,9 +342,3 @@ CB = {
 
 # ========== OVERS OPTIONS ==========
 OVERS_OPTIONS = [1, 2, 3, 4, 5, 6, 7]
-
-# ========== BOWLING SPEEDS LIST (for buttons) ==========
-BOWLING_SPEEDS_BUTTONS = ["FANCODE", "TANCODE", "ATHANSTAN", "FAST", "PHYSICAL", "63"]
-
-# ========== SOLO PLAYER ICONS ==========
-SOLO_ICONS = ["🟢", "⚽", "🔥", "🌞", "💬", "🎮", "🏀", "🐍", "🕊️"]
