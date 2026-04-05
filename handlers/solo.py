@@ -13,6 +13,14 @@ solo_timers = {}
 # Solo player icons
 SOLO_ICONS = ["🟢", "⚽", "🔥", "🌞", "💬", "🎮", "🏀", "🐍", "🕊️", "⭐", "⚡", "💎"]
 
+# 3 Bowlers for solo mode
+SOLO_BOWLERS = [
+    {"name": "Fast Bowler", "icon": "⚡", "speed": "FAST"},
+    {"name": "Spin Bowler", "icon": "🔄", "speed": "SPIN"},
+    {"name": "Pace Bowler", "icon": "💨", "speed": "PACE"}
+]
+
+
 async def solo_play_command(client, message: Message):
     """Solo play command - Show solo mode menu"""
     buttons = InlineKeyboardMarkup([
@@ -28,7 +36,7 @@ async def solo_play_command(client, message: Message):
     
     await message.reply_text(
         "🎯 **SOLO MODE**\n\n"
-        "Play cricket matches against the bot!\n\n"
+        "Play cricket matches against 3 different bowlers!\n\n"
         "• **Start Solo Match** - Play a new match\n"
         "• **My Stats** - View your statistics\n"
         "• **Leaderboard** - Top players list\n\n"
@@ -38,7 +46,7 @@ async def solo_play_command(client, message: Message):
 
 
 async def solo_start_command(client, message: Message):
-    """Start a solo match"""
+    """Start a solo match with 3 bowlers"""
     user_id = message.from_user.id
     user_name = message.from_user.first_name
     
@@ -47,7 +55,7 @@ async def solo_start_command(client, message: Message):
         await message.reply_text("❌ You already have an active solo game! Finish it first.")
         return
     
-    # Create new solo game
+    # Create new solo game with 3 bowlers
     solo_games[user_id] = {
         "user_id": user_id,
         "user_name": user_name,
@@ -59,7 +67,12 @@ async def solo_start_command(client, message: Message):
         "ball_sequence": [],
         "status": "batting",
         "current_ball": 0,
-        "max_balls": 12,  # 2 overs
+        "current_bowler_index": 0,
+        "max_balls_per_bowler": 6,  # 6 balls per bowler
+        "total_bowlers": 3,
+        "current_bowler": SOLO_BOWLERS[0],
+        "bowler_number": None,
+        "batter_number": None,
         "created_at": datetime.now()
     }
     
@@ -81,20 +94,26 @@ async def solo_start_command(client, message: Message):
             "created_at": datetime.now()
         })
     
-    buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🏏 Play Ball", callback_data="solo_play_ball", style=ButtonStyle.PRIMARY)],
-        [InlineKeyboardButton("❌ End Match", callback_data="solo_end_match", style=ButtonStyle.DANGER)]
-    ])
+    # Show first bowler
+    first_bowler = SOLO_BOWLERS[0]
     
     await message.reply_text(
         f"🏏 **SOLO MATCH STARTED!**\n\n"
         f"👤 **Player:** {user_name}\n"
-        f"📊 **Format:** 2 overs (12 balls)\n\n"
+        f"🎯 **You will face 3 bowlers:**\n"
+        f"   {SOLO_BOWLERS[0]['icon']} {SOLO_BOWLERS[0]['name']}\n"
+        f"   {SOLO_BOWLERS[1]['icon']} {SOLO_BOWLERS[1]['name']}\n"
+        f"   {SOLO_BOWLERS[2]['icon']} {SOLO_BOWLERS[2]['name']}\n\n"
+        f"📊 **Format:** 3 bowlers × 6 balls = 18 balls\n\n"
         f"🎯 **Ratings:** ND BAT | MENTAL 66 | PACE 63 | PHYSICAL 66\n\n"
+        f"⚡ **First Bowler:** {first_bowler['icon']} {first_bowler['name']}\n\n"
         f"Send numbers **1-6** on bot PM to play your shots!\n"
         f"Type **W** for wicket (if you want to get out!)\n\n"
         f"Click **Play Ball** to start!",
-        reply_markup=buttons
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🏏 Play Ball", callback_data="solo_play_ball", style=ButtonStyle.PRIMARY)],
+            [InlineKeyboardButton("❌ End Match", callback_data="solo_end_match", style=ButtonStyle.DANGER)]
+        ])
     )
 
 
@@ -112,10 +131,16 @@ async def solo_play_ball_callback(callback_query: CallbackQuery):
         await callback_query.answer("Game already finished!", show_alert=True)
         return
     
+    current_bowler = game["current_bowler"]
+    balls_this_bowler = game["current_ball"] % game["max_balls_per_bowler"]
+    balls_left_this_bowler = game["max_balls_per_bowler"] - balls_this_bowler
+    
     await callback_query.message.edit_text(
         f"🏏 **PLAY BALL!**\n\n"
-        f"📊 **Current Score:** {game['runs']}/{game['wickets']}\n"
-        f"📈 **Balls:** {game['current_ball']}/{game['max_balls']}\n"
+        f"⚡ **Current Bowler:** {current_bowler['icon']} {current_bowler['name']}\n"
+        f"📊 **Score:** {game['runs']}/{game['wickets']}\n"
+        f"📈 **Balls:** {game['current_ball']}/{game['total_bowlers'] * game['max_balls_per_bowler']}\n"
+        f"🎯 **Balls left this bowler:** {balls_left_this_bowler}\n"
         f"🎯 **Ratings:** ND BAT | MENTAL 66 | PACE 63 | PHYSICAL 66\n\n"
         f"**Send number (1-6) on bot PM!**"
     )
@@ -123,7 +148,7 @@ async def solo_play_ball_callback(callback_query: CallbackQuery):
 
 
 async def solo_play_number(user_id: int, number: int):
-    """Process solo play number"""
+    """Process solo play number with OUT logic"""
     if user_id not in solo_games:
         return None
     
@@ -132,10 +157,47 @@ async def solo_play_number(user_id: int, number: int):
     if game["status"] != "batting":
         return None
     
-    # Calculate runs based on number
-    runs = number  # Simple logic - number = runs
+    # Get bowler's number (store previous or random)
+    bowler_num = game.get("bowler_number", random.randint(1, 6))
+    game["batter_number"] = number
     
-    # Update game stats
+    # CHECK IF OUT (Numbers match)
+    if bowler_num == number:
+        # WICKET!
+        game["wickets"] += 1
+        game["balls"] += 1
+        game["current_ball"] += 1
+        game["ball_sequence"].append("W")
+        
+        is_match_over = game["current_ball"] >= (game["total_bowlers"] * game["max_balls_per_bowler"]) or game["wickets"] >= 10
+        
+        result = {
+            "is_wicket": True,
+            "runs": 0,
+            "is_match_over": is_match_over,
+            "current_score": f"{game['runs']}/{game['wickets']}",
+            "balls_left": (game["total_bowlers"] * game["max_balls_per_bowler"]) - game["current_ball"],
+            "bowler_num": bowler_num,
+            "batter_num": number
+        }
+        
+        if is_match_over:
+            await save_solo_match_result(user_id, game)
+            solo_games[user_id]["status"] = "completed"
+        else:
+            # Check if bowler's 6 balls are over
+            if game["current_ball"] % game["max_balls_per_bowler"] == 0:
+                # Switch to next bowler
+                next_bowler_index = game["current_bowler_index"] + 1
+                if next_bowler_index < game["total_bowlers"]:
+                    game["current_bowler_index"] = next_bowler_index
+                    game["current_bowler"] = SOLO_BOWLERS[next_bowler_index]
+                    game["bowler_number"] = None
+        
+        return result
+    
+    # NOT OUT - Add runs
+    runs = number
     game["runs"] += runs
     game["balls"] += 1
     game["current_ball"] += 1
@@ -146,18 +208,31 @@ async def solo_play_number(user_id: int, number: int):
     elif runs == 6:
         game["sixes"] += 1
     
-    # Check if match over
-    is_match_over = game["current_ball"] >= game["max_balls"] or game["wickets"] >= 10
+    # Clear bowler number for next ball (new random each ball)
+    game["bowler_number"] = None
+    
+    is_match_over = game["current_ball"] >= (game["total_bowlers"] * game["max_balls_per_bowler"]) or game["wickets"] >= 10
     
     result = {
+        "is_wicket": False,
         "runs": runs,
         "is_match_over": is_match_over,
         "current_score": f"{game['runs']}/{game['wickets']}",
-        "balls_left": game["max_balls"] - game["current_ball"],
+        "balls_left": (game["total_bowlers"] * game["max_balls_per_bowler"]) - game["current_ball"],
         "fours": game["fours"],
         "sixes": game["sixes"],
-        "ball_sequence": game["ball_sequence"]
+        "bowler_num": bowler_num,
+        "batter_num": number
     }
+    
+    # Check if bowler's 6 balls are over and not match over
+    if not is_match_over and game["current_ball"] % game["max_balls_per_bowler"] == 0:
+        # Switch to next bowler
+        next_bowler_index = game["current_bowler_index"] + 1
+        if next_bowler_index < game["total_bowlers"]:
+            game["current_bowler_index"] = next_bowler_index
+            game["current_bowler"] = SOLO_BOWLERS[next_bowler_index]
+            result["next_bowler"] = game["current_bowler"]
     
     if is_match_over:
         await save_solo_match_result(user_id, game)
@@ -181,13 +256,13 @@ async def solo_wicket(user_id: int):
     game["current_ball"] += 1
     game["ball_sequence"].append("W")
     
-    is_match_over = game["current_ball"] >= game["max_balls"] or game["wickets"] >= 10
+    is_match_over = game["current_ball"] >= (game["total_bowlers"] * game["max_balls_per_bowler"]) or game["wickets"] >= 10
     
     result = {
         "is_wicket": True,
         "is_match_over": is_match_over,
         "current_score": f"{game['runs']}/{game['wickets']}",
-        "balls_left": game["max_balls"] - game["current_ball"]
+        "balls_left": (game["total_bowlers"] * game["max_balls_per_bowler"]) - game["current_ball"]
     }
     
     if is_match_over:
@@ -199,7 +274,6 @@ async def solo_wicket(user_id: int):
 
 async def save_solo_match_result(user_id: int, game: dict):
     """Save solo match result to database"""
-    # Update player stats
     player = await db.get_solo_player(user_id)
     if player:
         new_total_runs = player.get("total_runs", 0) + game["runs"]
@@ -307,7 +381,6 @@ async def solo_tree_community(callback_query: CallbackQuery):
         await callback_query.answer()
         return
     
-    # Format player list like screenshot
     player_list = "🌳 **SOLO TREE COMMUNITY**\n\n"
     player_list += "**Solo Players**\n\n"
     
