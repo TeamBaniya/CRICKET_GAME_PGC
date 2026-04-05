@@ -4,7 +4,6 @@ from handlers.team import add_a_command, add_b_command, join_teama_command, join
 from handlers.match import startgame_command
 from handlers.gameplay import bowling_command, batting_command, swap_command, end_match_command
 from handlers.auction import add_cap_command, rm_cap_command, cap_change_command, auction_id_command, start_auction_command, pause_auction_command, resume_auction_command, auction_host_change_command, xp_command, unhold_command, rm_auction_id_command
-from handlers.callback import callback_handler
 from handlers.join import joingame_command
 from handlers.vote import vote_game_command
 from handlers.solo import solo_play_command, solo_start_command, solo_stats_command, solo_leaderboard_command, solo_tree_community
@@ -102,7 +101,3 @@ async def register_handlers(client, message):
         await unhold_command(client, message)
     elif text == "/rm_auction_id":
         await rm_auction_id_command(client, message)
-    
-    # ========== CALLBACK QUERY (BUTTON CLICKS) ==========
-    elif message.callback_query:
-        await callback_handler(client, message.callback_query)
