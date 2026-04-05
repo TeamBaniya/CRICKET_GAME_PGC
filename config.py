@@ -12,7 +12,7 @@ DB_NAME = "cricket_bot"
 BOT_TOKEN = "8710613096:AAHOqrjfrKU-RNcVGKgHprD6ZW3nUhI-y4U"
 
 # ========== ADMIN IDs ==========
-ADMIN_IDS = [123456789]  # Apne admin IDs dalo
+ADMIN_IDS = [6572893382]  # Apne admin IDs dalo
 
 # ========== LINKS (AAP YAHAN APNE LINKS DAALOGE) ==========
 UPDATES_LINK = "https://t.me/your_updates_channel"      # 📢 UPDATES button
@@ -45,6 +45,19 @@ BATTING_RATINGS = {
     "PACE": 63,
     "PHYSICAL": 66
 }
+
+# ========== WELCOME CAPTION (for start.py) ==========
+WELCOME_CAPTION = """
+🏏 **𝐖ᴇʟᴄᴏᴍᴇ 𝐭ᴏ 𝐂ʀɪᴄᴋᴇᴛ 𝐁ᴏᴛ!**
+
+🔴 **𝐋ɪᴠᴇ 𝐂ʀɪᴄᴋᴇᴛ 𝐒ᴄᴏʀᴇs:** Get real-time updates on live matches. Use /matches to see live scores.
+
+🎮 **𝐌ᴀɴᴀɢᴇ 𝐘ᴏᴜʀ 𝐓ᴇᴀᴍ:** Strategize, set your lineup, and play the game just like a pro captain.
+
+🗽 **1_VS_1:** Find one vs one match /1v1
+
+Use /help to learn more about the game.
+"""
 
 # ========== MESSAGES ==========
 WELCOME_MESSAGE = """
