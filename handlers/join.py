@@ -5,8 +5,9 @@ from database import db
 from datetime import datetime, timedelta
 import asyncio
 
-# Store active games
-active_games = {}
+# Store active games (import from game.py to use same dictionary)
+from handlers.game import active_games
+
 join_timers = {}
 
 async def joingame_command(client, message: Message):
@@ -56,96 +57,6 @@ async def joingame_command(client, message: Message):
     await update_game_message(client, chat_id, game)
 
 
-async def create_game(client, message: Message, host_id: int):
-    """Create a new game (called from game creation)"""
-    chat_id = message.chat.id
-    
-    game = {
-        "host_id": host_id,
-        "created_at": datetime.now(),
-        "expires_at": datetime.now() + timedelta(minutes=2),
-        "players": [],
-        "status": "waiting",  # waiting, live, completed, expired
-        "message_id": None,
-        "game_type": "solo",  # solo or team
-        "total_overs": 2,
-        "current_runs": 0,
-        "current_wickets": 0,
-        "current_balls": 0,
-        "ball_sequence": []
-    }
-    
-    # Add host as first player
-    try:
-        host_user = await client.get_users(host_id)
-        game["players"].append({
-            "user_id": host_id,
-            "username": host_user.username,
-            "first_name": host_user.first_name,
-            "player_number": 1,
-            "is_host": True,
-            "runs": 0,
-            "balls": 0,
-            "wickets": 0
-        })
-    except:
-        game["players"].append({
-            "user_id": host_id,
-            "username": None,
-            "first_name": "Host",
-            "player_number": 1,
-            "is_host": True,
-            "runs": 0,
-            "balls": 0,
-            "wickets": 0
-        })
-    
-    active_games[chat_id] = game
-    
-    # Send game creation message
-    msg = await message.reply_text(
-        f"🎉 **Game created!** Join the game using `/joingame` (2 minutes to join) 🏏️\n\n"
-        f"👤 **Host:** {game['players'][0]['first_name']}\n"
-        f"👥 **Players joined:** 1\n\n"
-        f"⏰ Time remaining: 2:00 minutes"
-    )
-    game["message_id"] = msg.id
-    
-    # Start auto-expire timer
-    asyncio.create_task(auto_expire_game(client, chat_id))
-    
-    # Start warning timers
-    asyncio.create_task(start_join_warnings(client, chat_id))
-
-
-async def start_join_warnings(client, chat_id):
-    """Send warnings before game expires"""
-    await asyncio.sleep(110)  # 1 minute 50 seconds
-    
-    if chat_id in active_games and active_games[chat_id]["status"] == "waiting":
-        await client.send_message(
-            chat_id,
-            "⏰ **Last 10 seconds left only, /joingame !!**"
-        )
-
-
-async def auto_expire_game(client, chat_id):
-    """Auto expire game after 2 minutes if not started"""
-    await asyncio.sleep(120)  # 2 minutes
-    
-    if chat_id in active_games:
-        game = active_games[chat_id]
-        if game["status"] == "waiting":
-            game["status"] = "expired"
-            await client.send_message(
-                chat_id,
-                "⚠️ **Game session expired due to inactivity.**\n\n"
-                f"👥 Players joined: {len(game['players'])}\n\n"
-                "Start a new game with /create_game"
-            )
-            del active_games[chat_id]
-
-
 async def update_game_message(client, chat_id, game):
     """Update the game message with player count"""
     players_list = "\n".join([
@@ -157,48 +68,20 @@ async def update_game_message(client, chat_id, game):
     minutes = time_left // 60
     seconds = time_left % 60
     
+    game_type = "Solo" if game.get("type") == "solo" else "Team"
+    
     try:
         await client.edit_message_text(
             chat_id,
             game["message_id"],
-            f"🎉 **Game created!** Join the game using `/joingame` ({minutes}:{seconds:02d} minutes left) 🏏️\n\n"
+            f"🎉 **{game_type} Game Created!** 🎉\n\n"
+            f"Join the game using `/joingame` ({minutes}:{seconds:02d} minutes left)\n\n"
             f"**Players joined:**\n{players_list}\n\n"
             f"**Total players:** {len(game['players'])}\n\n"
             f"Type `/startgame` when ready!"
         )
-    except:
-        pass
-
-
-async def start_game_from_join(client, chat_id):
-    """Start the game when enough players join"""
-    if chat_id not in active_games:
-        return
-    
-    game = active_games[chat_id]
-    if game["status"] != "waiting":
-        return
-    
-    if len(game["players"]) < 2:
-        return
-    
-    game["status"] = "live"
-    
-    # Set current batter and bowler
-    game["current_batter_index"] = 0
-    game["current_bowler_index"] = 1 if len(game["players"]) > 1 else 0
-    game["current_batter"] = game["players"][game["current_batter_index"]]["user_id"]
-    game["current_bowler"] = game["players"][game["current_bowler_index"]]["user_id"]
-    
-    await client.send_message(
-        chat_id,
-        f"🏏 **MATCH STARTING!** 🏏\n\n"
-        f"👥 Total players: {len(game['players'])}\n\n"
-        f"🏏 **Batter:** {game['players'][game['current_batter_index']]['first_name']}\n"
-        f"🎯 **Bowler:** {game['players'][game['current_bowler_index']]['first_name']}\n\n"
-        f"Use `/bowling <speed>` to select bowling speed!\n"
-        f"Available speeds: FAST, PHYSICAL, 63, FANCODE, TANCODE, ATHANSTAN"
-    )
+    except Exception as e:
+        print(f"Error updating game message: {e}")
 
 
 async def get_active_game(chat_id):
@@ -238,5 +121,8 @@ async def add_player_to_game(chat_id, user_id, name):
         "balls": 0,
         "wickets": 0
     })
+    
+    # Update game message
+    await update_game_message(client, chat_id, game)  # Note: client needed
     
     return True
