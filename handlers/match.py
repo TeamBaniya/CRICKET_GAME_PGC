@@ -4,7 +4,7 @@ from pyrogram.enums import ButtonStyle
 from database import db
 from datetime import datetime
 import random
-from config import BOWLING_VIDEO_URL, BOWLING_SPEEDS_BUTTONS
+from config import BOWLING_VIDEO_URL
 
 # Store active matches
 active_matches = {}
@@ -59,46 +59,37 @@ async def startgame_command(client, message: Message):
 
 
 async def send_bowling_screen(client, chat_id, bowler_name):
-    """Send bowling screen with video and buttons"""
-    from handlers.gameplay import active_games as gameplay_games
+    """Send bowling screen with ONLY bowling button (no speed buttons)"""
     
     # Set current bowler
     if chat_id in active_matches:
         game = active_matches[chat_id]
         game["current_bowler"] = game["players"][0]["user_id"]
-        game["bowling_status"] = "waiting_for_speed"
+        game["bowling_status"] = "waiting_for_number"
     
-    # Bowling speed buttons
+    # ONLY Bowling button - NO speed buttons
     buttons = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("FAST", callback_data="bowl_speed_fast", style=ButtonStyle.PRIMARY),
-            InlineKeyboardButton("PHYSICAL", callback_data="bowl_speed_physical", style=ButtonStyle.PRIMARY),
-            InlineKeyboardButton("63", callback_data="bowl_speed_63", style=ButtonStyle.PRIMARY)
-        ],
-        [
-            InlineKeyboardButton("🏏 Bowling", callback_data="bowling_select", style=ButtonStyle.SUCCESS)
-        ]
+        [InlineKeyboardButton("🏏 Bowling", callback_data="bowling_btn", style=ButtonStyle.PRIMARY)]
     ])
     
-    # Send bowling video
+    # Send bowling video with only bowling button
     if BOWLING_VIDEO_URL:
         await client.send_video(
             chat_id,
             video=BOWLING_VIDEO_URL,
-            caption=f"🎯 **Hey {bowler_name}, now you're bowling!**\n\nChoose your bowling speed:",
+            caption=f"🎯 **Hey {bowler_name}, now you're bowling!**\n\nClick the button below to send your number!",
             reply_markup=buttons
         )
     else:
         await client.send_message(
             chat_id,
-            f"🎯 **Hey {bowler_name}, now you're bowling!**\n\nChoose your bowling speed:\n\nFAST | PHYSICAL | 63\n\nClick /bowling to start!",
+            f"🎯 **Hey {bowler_name}, now you're bowling!**\n\nClick the button below to send your number!",
             reply_markup=buttons
         )
 
 
 async def overs_selected(callback_query, overs):
     """This function is kept for compatibility but not used"""
-    # Directly start game without overs selection
     await send_bowling_screen(callback_query._client, callback_query.message.chat.id, callback_query.from_user.first_name)
     await callback_query.answer()
 
@@ -138,12 +129,15 @@ async def join_game_callback(callback_query):
     # Update match message
     players_list = "\n".join([f"• Player {p['player_number']}: {p['first_name']}" for p in match["players"]])
     
-    await callback_query.message.edit_text(
+    new_text = (
         f"🎉 **Game Ready!** 🎉\n\n"
         f"🏏 **2 overs match**\n\n"
         f"**Players joined:**\n{players_list}\n\n"
         f"Type /bowling to start bowling!"
     )
+    
+    if callback_query.message.text != new_text:
+        await callback_query.message.edit_text(new_text)
 
 
 async def set_bowler(callback_query, user_id):
@@ -158,7 +152,7 @@ async def set_bowler(callback_query, user_id):
     for player in match["players"]:
         if player["user_id"] == user_id:
             match["current_bowler"] = user_id
-            match["bowling_status"] = "waiting_for_speed"
+            match["bowling_status"] = "waiting_for_number"
             return True
     
     return False
