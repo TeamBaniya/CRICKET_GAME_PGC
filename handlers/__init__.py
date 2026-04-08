@@ -8,13 +8,11 @@ from handlers.join import joingame_command
 from handlers.vote import vote_game_command
 from handlers.solo import solo_play_command, solo_start_command, solo_stats_command, solo_leaderboard_command, solo_tree_community
 from handlers.dm_handler import handle_dm_message
-from handlers.callback import callback_handler
 
 async def register_handlers(client, message):
     # ✅ PUBLIC BOT - Sabko access hai
     
     # ========== DM ME NUMBER RECEIVE KARNA ==========
-    # Agar user ne bot PM mein number bheja (1-6 ya W)
     if message.chat.type == "private" and message.text:
         text_upper = message.text.upper()
         if text_upper in ["1", "2", "3", "4", "5", "6", "W"]:
@@ -69,7 +67,6 @@ async def register_handlers(client, message):
     elif text == "/solo_leaderboard":
         await solo_leaderboard_command(client, message)
     elif text == "/solo_tree":
-        # Fake callback query banao for solo tree
         class FakeCallback:
             def __init__(self, message):
                 self.message = message
@@ -103,6 +100,5 @@ async def register_handlers(client, message):
     elif text == "/rm_auction_id":
         await rm_auction_id_command(client, message)
     
-    # ========== CALLBACK QUERY (BUTTON CLICKS) ==========
-    elif message.callback_query:
-        await callback_handler(client, message.callback_query)
+    # ========== CALLBACK QUERIES ARE HANDLED IN main.py ==========
+    # @bot.on_callback_query() handles button clicks
