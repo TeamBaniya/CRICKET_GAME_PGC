@@ -126,14 +126,17 @@ async def solo_start_multi(client, message, user_id, user_name, chat_id):
             
             # Update game message
             players_list = "\n".join([f"• {p['name']}" for p in game["players"]])
-            await client.edit_message_text(
-                chat_id,
-                game["message_id"],
-                f"🏏 **SOLO TOURNAMENT!**\n\n"
-                f"**Players joined:**\n{players_list}\n\n"
-                f"Type `/solo_start` to join!\n"
-                f"Game will start in 60 seconds or when host clicks Start!"
-            )
+            try:
+                await client.edit_message_text(
+                    chat_id,
+                    game["message_id"],
+                    f"🏏 **SOLO TOURNAMENT!**\n\n"
+                    f"**Players joined:**\n{players_list}\n\n"
+                    f"Type `/solo_start` to join!\n"
+                    f"Host click Start Game when ready!"
+                )
+            except:
+                pass
             return
     
     # Check if user is host and game exists
@@ -177,21 +180,25 @@ async def solo_start_multi(client, message, user_id, user_name, chat_id):
 
 async def start_multi_player_turn(client, chat_id):
     """Start next player's turn in multi-player game"""
+    if chat_id not in solo_multi_players:
+        return
+    
     game = solo_multi_players[chat_id]
     current_index = game["current_player_index"]
     
     if current_index >= len(game["players"]):
         # Game over - declare winner
-        winner = max(game["players"], key=lambda x: x["runs"])
-        await client.send_message(
-            chat_id,
-            f"🏆 **TOURNAMENT ENDED!** 🏆\n\n"
-            f"🥇 **WINNER:** {winner['name']} with {winner['runs']} runs!\n\n"
-            f"📊 **Final Scores:**\n" + "\n".join([f"• {p['name']}: {p['runs']} runs" for p in game["players"]]),
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🎮 New Tournament", callback_data="solo_multi_new", style=ButtonStyle.SUCCESS)]
-            ])
-        )
+        if game["players"]:
+            winner = max(game["players"], key=lambda x: x["runs"])
+            await client.send_message(
+                chat_id,
+                f"🏆 **TOURNAMENT ENDED!** 🏆\n\n"
+                f"🥇 **WINNER:** {winner['name']} with {winner['runs']} runs!\n\n"
+                f"📊 **Final Scores:**\n" + "\n".join([f"• {p['name']}: {p['runs']} runs" for p in game["players"]]),
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🎮 New Tournament", callback_data="solo_multi_new", style=ButtonStyle.SUCCESS)]
+                ])
+            )
         del solo_multi_players[chat_id]
         return
     
@@ -335,9 +342,9 @@ async def solo_play_number(user_id: int, number: int):
         if is_match_over:
             await save_solo_match_result(user_id, game)
             solo_games[user_id]["status"] = "completed"
-            # If multi-player mode, move to next player
             if game.get("mode") == "multi":
-                await handle_multi_player_elimination(user_id, game)
+                chat_id = game.get("multi_chat_id")
+                await handle_multi_player_elimination(None, chat_id, user_id, game)
         else:
             if game["current_ball"] % game["max_balls_per_bowler"] == 0:
                 next_bowler_index = game["current_bowler_index"] + 1
@@ -387,47 +394,42 @@ async def solo_play_number(user_id: int, number: int):
         await save_solo_match_result(user_id, game)
         solo_games[user_id]["status"] = "completed"
         if game.get("mode") == "multi":
-            await handle_multi_player_completion(user_id, game)
+            chat_id = game.get("multi_chat_id")
+            await handle_multi_player_completion(None, chat_id, user_id, game)
     
     return result
 
 
-async def handle_multi_player_elimination(user_id, game):
+async def handle_multi_player_elimination(client, chat_id, user_id, game):
     """Handle player elimination in multi-player mode"""
-    chat_id = game.get("multi_chat_id")
     if chat_id and chat_id in solo_multi_players:
         multi_game = solo_multi_players[chat_id]
         current_index = multi_game["current_player_index"]
         
-        # Update player's score
         for p in multi_game["players"]:
             if p["user_id"] == user_id:
                 p["runs"] = game["runs"]
                 p["status"] = "eliminated"
                 break
         
-        # Move to next player
         multi_game["current_player_index"] = current_index + 1
-        await start_multi_player_turn(callback_query._client, chat_id)
+        await start_multi_player_turn(client, chat_id)
 
 
-async def handle_multi_player_completion(user_id, game):
+async def handle_multi_player_completion(client, chat_id, user_id, game):
     """Handle player completing all balls in multi-player mode"""
-    chat_id = game.get("multi_chat_id")
     if chat_id and chat_id in solo_multi_players:
         multi_game = solo_multi_players[chat_id]
         current_index = multi_game["current_player_index"]
         
-        # Update player's score
         for p in multi_game["players"]:
             if p["user_id"] == user_id:
                 p["runs"] = game["runs"]
                 p["status"] = "completed"
                 break
         
-        # Move to next player
         multi_game["current_player_index"] = current_index + 1
-        await start_multi_player_turn(callback_query._client, chat_id)
+        await start_multi_player_turn(client, chat_id)
 
 
 async def solo_wicket(user_id: int):
