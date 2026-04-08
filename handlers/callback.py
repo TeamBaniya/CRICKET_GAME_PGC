@@ -1,13 +1,13 @@
 # TODO: Add your code here
 from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ButtonStyle
-from handlers.help import game_instructions_menu
+from handlers.help import game_instructions_menu, solo_mode_menu, back_to_game_instructions
 from handlers.team import team_mode_menu
 from handlers.auction import auction_mode_menu
 from handlers.match import overs_selected
 from handlers.start import start_command, add_to_group_callback
 from handlers.vote import vote_game_callback
-from handlers.solo import solo_tree_community, solo_play_callback
+from handlers.solo import solo_tree_community, solo_play_callback, solo_mode_menu as solo_menu
 from config import BOWLING_SPEEDS_BUTTONS, UPDATES_LINK, SUPPORT_LINK
 
 async def callback_handler(client, callback_query: CallbackQuery):
@@ -67,7 +67,7 @@ async def callback_handler(client, callback_query: CallbackQuery):
     
     # ========== GAME MODES ==========
     elif data == "solo_mode" or data == "solo_play":
-        await solo_play_callback(callback_query)
+        await solo_mode_menu(callback_query)
     
     elif data == "team_mode" or data == "team_play":
         await team_mode_menu(callback_query)
@@ -165,6 +165,9 @@ async def callback_handler(client, callback_query: CallbackQuery):
         )
         await start_command(client, fake_msg)
     
+    elif data == "back_to_game_instructions":
+        await back_to_game_instructions(callback_query)
+    
     # ========== SOLO MULTI CALLBACKS ==========
     elif data == "solo_multi_start":
         from handlers.solo import solo_multi_start_callback
@@ -177,6 +180,49 @@ async def callback_handler(client, callback_query: CallbackQuery):
     elif data == "solo_multi_new":
         from handlers.solo import solo_multi_new_callback
         await solo_multi_new_callback(callback_query)
+    
+    # ========== SOLO STATS & LEADERBOARD ==========
+    elif data == "solo_stats":
+        from handlers.solo import solo_stats_command
+        class FakeMessage:
+            def __init__(self, chat, from_user, edit_text):
+                self.chat = chat
+                self.from_user = from_user
+                self.reply_text = edit_text
+        fake_msg = FakeMessage(
+            callback_query.message.chat,
+            callback_query.from_user,
+            callback_query.message.edit_text
+        )
+        await solo_stats_command(client, fake_msg)
+    
+    elif data == "solo_leaderboard":
+        from handlers.solo import solo_leaderboard_command
+        class FakeMessage:
+            def __init__(self, chat, from_user, edit_text):
+                self.chat = chat
+                self.from_user = from_user
+                self.reply_text = edit_text
+        fake_msg = FakeMessage(
+            callback_query.message.chat,
+            callback_query.from_user,
+            callback_query.message.edit_text
+        )
+        await solo_leaderboard_command(client, fake_msg)
+    
+    elif data == "solo_start":
+        from handlers.solo import solo_start_command
+        class FakeMessage:
+            def __init__(self, chat, from_user, edit_text):
+                self.chat = chat
+                self.from_user = from_user
+                self.reply_text = edit_text
+        fake_msg = FakeMessage(
+            callback_query.message.chat,
+            callback_query.from_user,
+            callback_query.message.edit_text
+        )
+        await solo_start_command(client, fake_msg)
     
     # ========== DEFAULT ==========
     else:
