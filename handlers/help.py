@@ -1,7 +1,7 @@
 # TODO: Add your code here
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from pyrogram.enums import ButtonStyle
-from config import UPDATES_LINK, SUPPORT_LINK, OWNER_LINK, GAME_INSTRUCTIONS_IMAGE_URL, TEAM_PLAY_VIDEO_URL
+from config import UPDATES_LINK, SUPPORT_LINK, OWNER_LINK, GAME_INSTRUCTIONS_IMAGE_URL
 
 HELP_MESSAGE = """
 Hello! 🤗 Need some help with Cricket Master Bot? Here are some tips to get you started:
