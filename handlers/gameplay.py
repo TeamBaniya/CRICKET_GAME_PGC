@@ -133,47 +133,35 @@ async def switch_to_next_bowler(client, chat_id):
 
 
 async def bowling_button_callback(callback_query):
-    """Handle bowling button click - ask for number in DM (type manually)"""
+    """Handle bowling button click - direct DM (no group message, no button)"""
     print("🔵 DEBUG: bowling_button_callback CALLED!")
-    print(f"🔵 DEBUG: callback_query.data = {callback_query.data}")
-    print(f"🔵 DEBUG: callback_query.from_user.id = {callback_query.from_user.id}")
     
     user_id = callback_query.from_user.id
     chat_id = callback_query.message.chat.id
     
-    print(f"🔵 DEBUG: user_id = {user_id}, chat_id = {chat_id}")
-    
     if chat_id not in active_games:
-        print("🔴 DEBUG: No active game found!")
         await callback_query.answer("No active game!", show_alert=True)
         return
     
     game = active_games[chat_id]
-    print(f"🔵 DEBUG: game found")
-    
     if game.get("current_bowler") != user_id:
-        print("🔴 DEBUG: Not current bowler!")
         await callback_query.answer("You are not the current bowler!", show_alert=True)
         return
     
     if game.get("bowling_status") != "waiting_for_number":
-        print("🔴 DEBUG: Already processed!")
         await callback_query.answer("Already processed!", show_alert=True)
         return
     
-    bowler_name = game.get("bowler_name", "You")
-    print(f"🔵 DEBUG: bowler_name = {bowler_name}")
-    
-    await callback_query.answer("Check your DM! Send number 1-6")
-    print("🔵 DEBUG: answer sent to user")
-    
-    # Update group message
-    await callback_query.message.edit_text(f"✅ **{bowler_name} check your DM!**")
-    print("🔵 DEBUG: Group message updated")
-    
-    # Send DM to user - ask to TYPE the number (no buttons)
+    # ✅ Delete the group message - nothing stays in group
     try:
-        print("🔵 DEBUG: Trying to send DM...")
+        await callback_query.message.delete()
+    except:
+        pass
+    
+    await callback_query.answer("Opening DM...")
+    
+    # Send DM to user directly (no group message)
+    try:
         await callback_query._client.send_message(
             user_id,
             "🎯 **Send your bowling number (1-6)!**\n\n"
@@ -183,8 +171,8 @@ async def bowling_button_callback(callback_query):
         print("🔵 DEBUG: DM sent successfully!")
     except Exception as e:
         print(f"🔴 DEBUG: Cannot send DM! Error: {e}")
-        await callback_query.message.reply_text(f"❌ Cannot send DM! Error: {e}")
-
+        # Can't send DM, so show error in group
+        await callback_query.message.reply_text(f"❌ Cannot send DM! Please start the bot in private first.")
 
 # ==================== GROUP BATTING HANDLER ====================
 
