@@ -5,7 +5,7 @@ from handlers.help import game_instructions_menu
 from handlers.team import team_mode_menu
 from handlers.auction import auction_mode_menu
 from handlers.match import overs_selected
-from handlers.start import start_command, host_callback, add_to_group_callback
+from handlers.start import start_command, add_to_group_callback
 from handlers.vote import vote_game_callback
 from handlers.solo import solo_tree_community, solo_play_callback
 from config import BOWLING_SPEEDS_BUTTONS, UPDATES_LINK, SUPPORT_LINK
@@ -81,20 +81,6 @@ async def callback_handler(client, callback_query: CallbackQuery):
     elif data == "solo_tree":
         await solo_tree_community(callback_query)
     
-    # ========== HOST SELECTION ==========
-    elif data == "host":
-        await host_callback(callback_query)
-    
-    elif data == "host_selected":
-        await callback_query.message.edit_text(
-            "🏏 **Team Creation**\n\n"
-            "Team creation is underway!\n"
-            "Join Team A: /join_teamA\n"
-            "Join Team B: /join_teamB\n\n"
-            "Check members: /members_list\n\n"
-            "Type /startgame when teams are ready!"
-        )
-    
     # ========== OVERS SELECTION ==========
     elif data.startswith("overs_"):
         overs = int(data.split("_")[1])
@@ -165,9 +151,6 @@ async def callback_handler(client, callback_query: CallbackQuery):
             "🏏 **Match**\n\n"
             "Use /bowling and /batting commands to continue the game."
         )
-    
-    elif data == "back_to_host":
-        await host_callback(callback_query)
     
     elif data == "back_to_main":
         class FakeMessage:
