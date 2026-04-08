@@ -20,7 +20,7 @@ batter_number_store = {}
 # ==================== BOWLING COMMANDS ====================
 
 async def bowling_command(client, message: Message):
-    """/bowling command - Show bowling button only"""
+    """/bowling command - Show only bowling button (no speed buttons)"""
     user_id = message.from_user.id
     chat_id = message.chat.id
     
@@ -37,7 +37,7 @@ async def bowling_command(client, message: Message):
     # Set bowling status
     game["bowling_status"] = "waiting_for_number"
     
-    # Only ONE button - Bowling button
+    # ONLY Bowling button - NO speed buttons
     buttons = InlineKeyboardMarkup([
         [InlineKeyboardButton("🏏 Bowling", callback_data="bowling_btn", style=ButtonStyle.PRIMARY)]
     ])
@@ -49,7 +49,7 @@ async def bowling_command(client, message: Message):
         f"Click the button below to send your number!"
     )
     
-    # Send bowling video with button
+    # Send bowling video with button (if video exists)
     if BOWLING_VIDEO_URL:
         await client.send_video(
             chat_id,
@@ -154,7 +154,7 @@ async def bowling_button_callback(callback_query):
             "Reply with a number between 1-6\n"
             "⏰ You have 60 seconds!"
         )
-    except Exception as e:
+    except Exception:
         await callback_query.message.reply_text("❌ Cannot send DM! Please start the bot in private first.")
     
     await callback_query.message.edit_text("✅ Check your DM! Send number 1-6")
