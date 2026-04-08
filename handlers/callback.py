@@ -80,6 +80,11 @@ async def callback_handler(client, callback_query: CallbackQuery):
         from handlers.game import create_team_game
         await create_team_game(callback_query)
     
+    # ========== SOLO MATCH START CALLBACK ==========
+    elif data == "start_solo_match":
+        from handlers.game import start_solo_match_callback
+        await start_solo_match_callback(callback_query)
+    
     # ========== OVERS SELECTION ==========
     elif data.startswith("overs_"):
         overs = int(data.split("_")[1])
