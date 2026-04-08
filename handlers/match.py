@@ -4,45 +4,18 @@ from pyrogram.enums import ButtonStyle
 from database import db
 from datetime import datetime
 import random
-
-OVERS_MESSAGE = """
-🏏 **Cricket Game**
-
-How many overs do you want for this game?
-"""
+from config import BOWLING_VIDEO_URL, BOWLING_SPEEDS_BUTTONS
 
 # Store active matches
 active_matches = {}
 
 async def startgame_command(client, message: Message):
-    """Start game command - Show overs selection"""
+    """Start game command - Directly create match (no overs selection)"""
     user_id = message.from_user.id
     chat_id = message.chat.id
     
-    # Check if user is host or has permission
-    # Overs selection buttons
-    buttons = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("1 over", callback_data="overs_1", style=ButtonStyle.DEFAULT),
-            InlineKeyboardButton("2 overs", callback_data="overs_2", style=ButtonStyle.DEFAULT),
-            InlineKeyboardButton("3 overs", callback_data="overs_3", style=ButtonStyle.DEFAULT)
-        ],
-        [
-            InlineKeyboardButton("4 overs", callback_data="overs_4", style=ButtonStyle.DEFAULT),
-            InlineKeyboardButton("5 overs", callback_data="overs_5", style=ButtonStyle.DEFAULT),
-            InlineKeyboardButton("6 overs", callback_data="overs_6", style=ButtonStyle.DEFAULT)
-        ],
-        [
-            InlineKeyboardButton("7 overs", callback_data="overs_7", style=ButtonStyle.DEFAULT)
-        ]
-    ])
-    await message.reply_text(OVERS_MESSAGE, reply_markup=buttons)
-
-
-async def overs_selected(callback_query, overs):
-    """Handle overs selection and create match"""
-    chat_id = callback_query.message.chat.id
-    user = callback_query.from_user
+    # Default 2 overs
+    overs = 2
     
     # Create match session
     match_data = {
@@ -51,7 +24,7 @@ async def overs_selected(callback_query, overs):
         "total_overs": overs,
         "total_balls": overs * 6,
         "status": "waiting",
-        "host_id": user.id,
+        "host_id": user_id,
         "created_at": datetime.now(),
         "current_runs": 0,
         "current_wickets": 0,
@@ -72,33 +45,61 @@ async def overs_selected(callback_query, overs):
     # Store in active matches dict
     active_matches[chat_id] = match_data
     
-    # Also add host as first player
+    # Add host as first player
     active_matches[chat_id]["players"].append({
-        "user_id": user.id,
-        "first_name": user.first_name,
-        "username": user.username,
+        "user_id": user_id,
+        "first_name": message.from_user.first_name,
+        "username": message.from_user.username,
         "player_number": 1,
         "is_host": True
     })
     
+    # Send bowling screen directly
+    await send_bowling_screen(client, chat_id, message.from_user.first_name)
+
+
+async def send_bowling_screen(client, chat_id, bowler_name):
+    """Send bowling screen with video and buttons"""
+    from handlers.gameplay import active_games as gameplay_games
+    
+    # Set current bowler
+    if chat_id in active_matches:
+        game = active_matches[chat_id]
+        game["current_bowler"] = game["players"][0]["user_id"]
+        game["bowling_status"] = "waiting_for_speed"
+    
+    # Bowling speed buttons
     buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🏏 /bowling", callback_data="bowling_select", style=ButtonStyle.PRIMARY)],
-        [InlineKeyboardButton("➕ Join Game", callback_data="join_game", style=ButtonStyle.SUCCESS)],
-        [InlineKeyboardButton("◀️ BACK", callback_data="back_to_game", style=ButtonStyle.DEFAULT)]
+        [
+            InlineKeyboardButton("FAST", callback_data="bowl_speed_fast", style=ButtonStyle.PRIMARY),
+            InlineKeyboardButton("PHYSICAL", callback_data="bowl_speed_physical", style=ButtonStyle.PRIMARY),
+            InlineKeyboardButton("63", callback_data="bowl_speed_63", style=ButtonStyle.PRIMARY)
+        ],
+        [
+            InlineKeyboardButton("🏏 Bowling", callback_data="bowling_select", style=ButtonStyle.SUCCESS)
+        ]
     ])
     
-    new_text = (
-        f"🎉 **OHOO! 👏 Let's play a {overs} overs Match!!**\n\n"
-        f"🏏 **Team B will bowl first!**\n\n"
-        f"📊 **Match ID:** `{match_data['match_id']}`\n"
-        f"👤 **Host:** {user.first_name}\n\n"
-        f"Now, type /bowling to choose the bowling member!\n\n"
-        f"Or click **Join Game** to participate!"
-    )
-    
-    # Check if message content is different before editing
-    if callback_query.message.text != new_text:
-        await callback_query.message.edit_text(new_text, reply_markup=buttons)
+    # Send bowling video
+    if BOWLING_VIDEO_URL:
+        await client.send_video(
+            chat_id,
+            video=BOWLING_VIDEO_URL,
+            caption=f"🎯 **Hey {bowler_name}, now you're bowling!**\n\nChoose your bowling speed:",
+            reply_markup=buttons
+        )
+    else:
+        await client.send_message(
+            chat_id,
+            f"🎯 **Hey {bowler_name}, now you're bowling!**\n\nChoose your bowling speed:\n\nFAST | PHYSICAL | 63\n\nClick /bowling to start!",
+            reply_markup=buttons
+        )
+
+
+async def overs_selected(callback_query, overs):
+    """This function is kept for compatibility but not used"""
+    # Directly start game without overs selection
+    await send_bowling_screen(callback_query._client, callback_query.message.chat.id, callback_query.from_user.first_name)
     await callback_query.answer()
 
 
@@ -137,22 +138,12 @@ async def join_game_callback(callback_query):
     # Update match message
     players_list = "\n".join([f"• Player {p['player_number']}: {p['first_name']}" for p in match["players"]])
     
-    buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🏏 /bowling", callback_data="bowling_select", style=ButtonStyle.PRIMARY)],
-        [InlineKeyboardButton("➕ Join Game", callback_data="join_game", style=ButtonStyle.SUCCESS)],
-        [InlineKeyboardButton("◀️ BACK", callback_data="back_to_game", style=ButtonStyle.DEFAULT)]
-    ])
-    
-    new_text = (
-        f"🎉 **OHOO! 👏 Let's play a {match['total_overs']} overs Match!!**\n\n"
-        f"🏏 **Team B will bowl first!**\n\n"
+    await callback_query.message.edit_text(
+        f"🎉 **Game Ready!** 🎉\n\n"
+        f"🏏 **2 overs match**\n\n"
         f"**Players joined:**\n{players_list}\n\n"
-        f"Type /bowling to choose the bowling member!"
+        f"Type /bowling to start bowling!"
     )
-    
-    # Check if message content is different before editing
-    if callback_query.message.text != new_text:
-        await callback_query.message.edit_text(new_text, reply_markup=buttons)
 
 
 async def set_bowler(callback_query, user_id):
@@ -164,7 +155,6 @@ async def set_bowler(callback_query, user_id):
     
     match = active_matches[chat_id]
     
-    # Find player
     for player in match["players"]:
         if player["user_id"] == user_id:
             match["current_bowler"] = user_id
@@ -197,7 +187,6 @@ async def update_match_score(chat_id, runs, is_wicket=False):
     match["current_over"] = match["current_balls"] // 6
     match["current_ball_in_over"] = match["current_balls"] % 6
     
-    # Add to ball sequence
     ball_result = {
         "ball_number": match["current_balls"],
         "over": match["current_over"],
@@ -208,7 +197,6 @@ async def update_match_score(chat_id, runs, is_wicket=False):
     }
     match["ball_sequence"].append(ball_result)
     
-    # Check if innings is over
     if match["current_balls"] >= match["total_balls"] or match["current_wickets"] >= 10:
         match["status"] = "completed"
         await db.update_match(match["match_id"], {"status": "completed", "final_score": f"{match['current_runs']}/{match['current_wickets']}"})
@@ -221,3 +209,10 @@ async def reset_match(chat_id):
     if chat_id in active_matches:
         del active_matches[chat_id]
     return True
+
+
+async def get_active_match(chat_id):
+    """Get active match for a chat"""
+    if chat_id in active_matches:
+        return active_matches[chat_id]
+    return None
