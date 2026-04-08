@@ -1,4 +1,4 @@
-from handlers.start import start_command, host_callback, game_instructions_menu
+from handlers.start import start_command, add_to_group_callback
 from handlers.help import help_command
 from handlers.team import add_a_command, add_b_command, join_teama_command, join_teamb_command, members_list_command
 from handlers.match import startgame_command
@@ -8,6 +8,7 @@ from handlers.join import joingame_command
 from handlers.vote import vote_game_command
 from handlers.solo import solo_play_command, solo_start_command, solo_stats_command, solo_leaderboard_command, solo_tree_community
 from handlers.dm_handler import handle_dm_message
+from handlers.callback import callback_handler
 
 async def register_handlers(client, message):
     # ✅ PUBLIC BOT - Sabko access hai
@@ -101,3 +102,7 @@ async def register_handlers(client, message):
         await unhold_command(client, message)
     elif text == "/rm_auction_id":
         await rm_auction_id_command(client, message)
+    
+    # ========== CALLBACK QUERY (BUTTON CLICKS) ==========
+    elif message.callback_query:
+        await callback_handler(client, message.callback_query)
