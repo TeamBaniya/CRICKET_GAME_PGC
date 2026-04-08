@@ -1,17 +1,24 @@
 # TODO: Add your code here
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ButtonStyle
-from config import UPDATES_LINK, SUPPORT_LINK
+from config import UPDATES_LINK, SUPPORT_LINK, OWNER_LINK
 
 HELP_MESSAGE = """
-Hello! 🎉 Need some help with Cricket Master Bot?
+Hello! 🤗 Need some help with Cricket Master Bot? Here are some tips to get you started:
 
-• **Join a Match:** Type /start in groups
-• **Manage Your Team:** Use /startgame to get started
-• **Game Instructions:** Click below button
-• **Feedback:** Share your /feedback
+🔹 **Join a Match:** Ready to play? Start a new match or join an existing one with your friends. Just type /start in groups.
 
-Enjoy your time with Cricket Master Bot! 🎉
+🔹 **Manage Your Team:** Set up your lineup, choose your captain, and get ready to play. Use /startgame to get started.
+
+🔹 **Game Instructions:** New to the game? Type help to learn how to play and master the game.
+
+🔹 **Feedback:** We value your input! Share your /feedback with us in the support group.
+
+🔹 **Help and Support:** If you need assistance, visit our support group or type /help.
+
+👉 For a list of all available commands, click the "🎯 𝐆𝐚𝐦𝐞 𝐈𝐧𝐬𝐭𝐫𝐮𝐜𝐭𝐢𝐨𝐧𝐬" button below.
+
+Enjoy your time with Cricket Master Bot! 🏏🚀
 """
 
 GAME_INSTRUCTIONS_MESSAGE = """
@@ -25,14 +32,14 @@ async def help_command(client, message: Message):
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("➕ ADD ME TO GROUP", callback_data="add_to_group", style=ButtonStyle.SUCCESS),
-            InlineKeyboardButton("🎮 Game Instructions", callback_data="game_instructions", style=ButtonStyle.PRIMARY)
+            InlineKeyboardButton("🎯 Game Instructions", callback_data="game_instructions", style=ButtonStyle.PRIMARY)
         ],
         [
             InlineKeyboardButton("📢 UPDATES", url=UPDATES_LINK, style=ButtonStyle.DEFAULT),
             InlineKeyboardButton("🔗 SUPPORT", url=SUPPORT_LINK, style=ButtonStyle.DEFAULT)
         ],
         [
-            InlineKeyboardButton("👨‍💻 DEVELOPER", callback_data="developer", style=ButtonStyle.DEFAULT)
+            InlineKeyboardButton("👨‍💻 DEVELOPER", url=OWNER_LINK, style=ButtonStyle.DEFAULT)
         ]
     ])
     await message.reply_text(HELP_MESSAGE, reply_markup=buttons)
