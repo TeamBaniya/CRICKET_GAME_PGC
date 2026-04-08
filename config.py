@@ -14,6 +14,9 @@ OWNER_LINK = "https://t.me/oye_sparsh"  # Apna Telegram profile link
 # ========== BOT TOKEN ==========
 BOT_TOKEN = "8710613096:AAHOqrjfrKU-RNcVGKgHprD6ZW3nUhI-y4U"
 
+# ========== GAME INSTRUCTIONS IMAGE ==========
+GAME_INSTRUCTIONS_IMAGE_URL = "https://files.catbox.moe/0odkk1.jpg"
+
 # ========== ADMIN IDs ==========
 ADMIN_IDS = [6572893382]  # Apne admin IDs dalo
 
