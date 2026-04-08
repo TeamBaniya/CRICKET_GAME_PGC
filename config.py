@@ -20,6 +20,14 @@ GAME_INSTRUCTIONS_IMAGE_URL = "https://files.catbox.moe/iq4758.jpg"
 # ========== ADMIN IDs ==========
 ADMIN_IDS = [6572893382]  # Apne admin IDs dalo
 
+# ========== TEAM MODE VIDEOS ==========
+TEAM_START_VIDEO_URL = "https://files.catbox.moe/yld4p8.mp4"
+TEAM_ADD_VIDEO_URL = "https://graph.org/file/871e94f8f49ae663b1d23-529b03dd09d1b4c4b7.mp4"
+TEAM_REMOVE_VIDEO_URL = "https://graph.org/file/1bbab31bb595c4c074420-19e090953fc5fa9c6c.mp4"
+TEAM_STARTGAME_VIDEO_URL = "https://graph.org/file/f5a26d8b50d39c393e7d1-8d0bf1bc4ed772cb2a.mp4"
+TEAM_BOWLING_VIDEO_URL = "https://graph.org/file/3680f9d14543771855ee0-1ff9d9b2aeabefedb2.mp4"
+TEAM_BATTING_VIDEO_URL = "https://graph.org/file/088a969e3ba0815255edc-d60caf55c97b8b1615.mp4"
+
 # ========== LINKS (AAP YAHAN APNE LINKS DAALOGE) ==========
 UPDATES_LINK = "https://t.me/your_updates_channel"      # 📢 UPDATES button
 SUPPORT_LINK = "https://t.me/your_support_group"        # 🔗 SUPPORT button
