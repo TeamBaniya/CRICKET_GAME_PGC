@@ -43,7 +43,7 @@ Ready to play? Let's see your skills on the field! 🌟
 """
 
 TEAM_MODE_MESSAGE = """
-🌟 𝐌ᴇᴍʙᴇʀs 𝐀ᴅᴅɪɴɢ:
+🌟 **𝐌ᴇᴍʙᴇʀs 𝐀ᴅᴅɪɴɢ:**
 
 /add_A - add members to team A  
 /add_B - add members to team B  
@@ -51,7 +51,7 @@ TEAM_MODE_MESSAGE = """
 Eg: /add_A 1  or /add_A @username  
 (Use the player number of your team)
 
-🌟 𝐌ᴇᴍʙᴇʀs 𝐑ᴇᴍᴏᴠɪɴɢ:
+🌟 **𝐌ᴇᴍʙᴇʀs 𝐑ᴇᴍᴏᴠɪɴɢ:**
 
 /remove_A - remove members from team A  
 /remove_B - remove members from team B  
@@ -59,7 +59,7 @@ Eg: /add_A 1  or /add_A @username
 Eg: /remove_A 2  
 (Use the player number of your team)
 
-🌟 𝐆ᴀᴍᴇ 𝐏ʟᴀʏ 𝐂ᴏᴍᴍᴀɴᴅs:
+🌟 **𝐆ᴀᴍᴇ 𝐏ʟᴀʏ 𝐂ᴏᴍᴍᴀɴᴅs:**
 
 /startgame - to start the game  
 
@@ -113,7 +113,7 @@ async def help_command(client, message: Message):
 
 
 async def game_instructions_menu(callback_query):
-    """Game instructions menu with image - when Game Instructions clicked"""
+    """Game instructions menu with image - VOTE GAME and SOLO TREE removed"""
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🎯 Solo Play", callback_data="solo_play", style=ButtonStyle.PRIMARY),
@@ -121,10 +121,6 @@ async def game_instructions_menu(callback_query):
         ],
         [
             InlineKeyboardButton("💰 Auction", callback_data="auction", style=ButtonStyle.DANGER),
-            InlineKeyboardButton("🗳️ VOTE GAME", callback_data="vote_game", style=ButtonStyle.PRIMARY)
-        ],
-        [
-            InlineKeyboardButton("🌳 SOLO TREE COMMUNITY", callback_data="solo_tree", style=ButtonStyle.DEFAULT),
             InlineKeyboardButton("🏠 Home", callback_data="home", style=ButtonStyle.DEFAULT)
         ]
     ])
@@ -139,7 +135,7 @@ async def game_instructions_menu(callback_query):
 
 
 async def solo_mode_menu(callback_query):
-    """Solo mode menu - Only BACK button (no Start/Stats buttons)"""
+    """Solo mode menu - Only BACK button"""
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("◀️ BACK", callback_data="back_to_game_instructions", style=ButtonStyle.DEFAULT)
@@ -181,7 +177,7 @@ async def auction_menu(callback_query):
 
 
 async def back_to_game_instructions(callback_query):
-    """Back to game instructions menu with image"""
+    """Back to game instructions menu with image - VOTE GAME and SOLO TREE removed"""
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🎯 Solo Play", callback_data="solo_play", style=ButtonStyle.PRIMARY),
@@ -189,10 +185,6 @@ async def back_to_game_instructions(callback_query):
         ],
         [
             InlineKeyboardButton("💰 Auction", callback_data="auction", style=ButtonStyle.DANGER),
-            InlineKeyboardButton("🗳️ VOTE GAME", callback_data="vote_game", style=ButtonStyle.PRIMARY)
-        ],
-        [
-            InlineKeyboardButton("🌳 SOLO TREE COMMUNITY", callback_data="solo_tree", style=ButtonStyle.DEFAULT),
             InlineKeyboardButton("🏠 Home", callback_data="home", style=ButtonStyle.DEFAULT)
         ]
     ])
