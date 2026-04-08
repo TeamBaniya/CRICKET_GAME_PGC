@@ -6,6 +6,7 @@ from handlers.gameplay import bowling_command, batting_command, swap_command, en
 from handlers.auction import add_cap_command, rm_cap_command, cap_change_command, auction_id_command, start_auction_command, pause_auction_command, resume_auction_command, auction_host_change_command, xp_command, unhold_command, rm_auction_id_command
 from handlers.join import joingame_command
 from handlers.dm_handler import handle_dm_message
+from handlers.game import create_game_command  # ✅ ADD THIS
 
 async def register_handlers(client, message):
     # ✅ PUBLIC BOT - Sabko access hai
@@ -26,6 +27,8 @@ async def register_handlers(client, message):
         await start_command(client, message)
     elif text == "/help":
         await help_command(client, message)
+    elif text == "/create_game":  # ✅ ADD THIS
+        await create_game_command(client, message)
     
     # Game Commands
     elif text == "/startgame":
