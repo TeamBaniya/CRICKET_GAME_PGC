@@ -36,23 +36,39 @@ async def bowling_command(client, message: Message):
         return
     
     if len(args) < 2:
-        await message.reply_text(
-            "❌ **Usage:** /bowling <speed>\n\n"
-            f"**Available speeds:**\n{', '.join(BOWLING_SPEEDS_BUTTONS)}\n\n"
-            "Example: /bowling FAST"
-        )
+        # Show bowling speed buttons
+        buttons = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("FAST", callback_data="bowl_speed_fast", style=ButtonStyle.PRIMARY),
+                InlineKeyboardButton("PHYSICAL", callback_data="bowl_speed_physical", style=ButtonStyle.PRIMARY),
+                InlineKeyboardButton("63", callback_data="bowl_speed_63", style=ButtonStyle.PRIMARY)
+            ],
+            [
+                InlineKeyboardButton("🏏 Bowling", callback_data="bowling_select", style=ButtonStyle.SUCCESS)
+            ]
+        ])
+        
+        if BOWLING_VIDEO_URL:
+            await client.send_video(
+                chat_id,
+                video=BOWLING_VIDEO_URL,
+                caption=f"🎯 **Hey {message.from_user.first_name}, now you're bowling!**\n\nChoose your bowling speed:",
+                reply_markup=buttons
+            )
+        else:
+            await message.reply_text(
+                f"🎯 **Hey {message.from_user.first_name}, now you're bowling!**\n\n"
+                f"Choose your bowling speed:\n\nFAST | PHYSICAL | 63",
+                reply_markup=buttons
+            )
         return
     
     speed = args[1].upper()
-    if speed not in BOWLING_SPEEDS_BUTTONS:
+    if speed not in ["FAST", "PHYSICAL", "63"]:
         await message.reply_text(
-            f"❌ Invalid speed! Choose from:\n{', '.join(BOWLING_SPEEDS_BUTTONS)}"
+            f"❌ Invalid speed! Choose from: FAST, PHYSICAL, 63"
         )
         return
-    
-    # Cancel timer if exists
-    if chat_id in bowling_timers:
-        bowling_timers[chat_id].cancel()
     
     # Save bowling selection
     game["selected_speed"] = speed
@@ -60,12 +76,11 @@ async def bowling_command(client, message: Message):
     
     # Send bowling video
     if BOWLING_VIDEO_URL:
-        await client.send_video(chat_id, BOWLING_VIDEO_URL, caption=f"🎯 **Hey {message.from_user.first_name}, now you're bowling!**\n\nChoose your number (1-6) on bot PM!")
+        await client.send_video(chat_id, BOWLING_VIDEO_URL, caption=f"🎯 **Speed {speed} selected!**\n\nNow send number on bot PM (1-6)\n⏰ You have 60 seconds!")
     else:
         await message.reply_text(
-            f"🎯 **Hey {message.from_user.first_name}, now you're bowling!**\n\n"
             f"✅ **Speed {speed} selected!**\n\n"
-            f"Now send number on bot PM (1-6 or W for wicket)\n"
+            f"Now send number on bot PM (1-6)\n"
             f"⏰ You have 60 seconds!"
         )
     
@@ -132,26 +147,6 @@ async def switch_to_next_bowler(client, chat_id):
     )
 
 
-async def show_bowling_speed_options_to_user(client, chat_id, bowler_id):
-    """Send bowling speed options to bowler in DM"""
-    buttons = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(speed, callback_data=speed.lower(), style=ButtonStyle.PRIMARY)
-            for speed in BOWLING_SPEEDS_BUTTONS[i:i+3]
-        ]
-        for i in range(0, len(BOWLING_SPEEDS_BUTTONS), 3)
-    ])
-    
-    try:
-        await client.send_message(
-            bowler_id,
-            "🎯 **Choose your bowling speed:**",
-            reply_markup=buttons
-        )
-    except Exception:
-        pass
-
-
 async def bowling_speed_selected(callback_query, speed):
     """When bowler selects speed from inline button"""
     user_id = callback_query.from_user.id
@@ -171,7 +166,7 @@ async def bowling_speed_selected(callback_query, speed):
     
     await callback_query.message.edit_text(
         f"✅ **Speed {speed} selected!**\n\n"
-        f"Now send number on bot PM (1-6 or W for wicket)\n"
+        f"Now send number on bot PM (1-6)\n"
         f"⏰ You have 60 seconds!"
     )
     await callback_query.answer()
@@ -184,10 +179,10 @@ async def show_bowling_speed_options(callback_query):
     """Show bowling speed options in group"""
     buttons = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton(speed, callback_data=speed.lower(), style=ButtonStyle.PRIMARY)
-            for speed in BOWLING_SPEEDS_BUTTONS[i:i+3]
+            InlineKeyboardButton("FAST", callback_data="bowl_speed_fast", style=ButtonStyle.PRIMARY),
+            InlineKeyboardButton("PHYSICAL", callback_data="bowl_speed_physical", style=ButtonStyle.PRIMARY),
+            InlineKeyboardButton("63", callback_data="bowl_speed_63", style=ButtonStyle.PRIMARY)
         ]
-        for i in range(0, len(BOWLING_SPEEDS_BUTTONS), 3)
     ])
     
     await callback_query.message.edit_text(
@@ -200,7 +195,7 @@ async def show_bowling_speed_options(callback_query):
 # ==================== BATTING COMMANDS ====================
 
 async def batting_command(client, message: Message):
-    """/batting command - Select batsman"""
+    """/batting command - Play as batsman"""
     user_id = message.from_user.id
     chat_id = message.chat.id
     args = message.text.split()
@@ -212,10 +207,12 @@ async def batting_command(client, message: Message):
     game = active_games[chat_id]
     
     if len(args) < 2:
+        ratings_text = " | ".join([f"{k} {v}" for k, v in BATTING_RATINGS.items()])
         await message.reply_text(
-            "❌ **Usage:** /batting <number>\n\n"
-            "Send number (1-6) to play the ball!\n"
-            "Example: /batting 4"
+            f"🏏 **Now Batter can send number (1-6)!!**\n\n"
+            f"📊 **Ratings:** {ratings_text}\n\n"
+            f"Send number (1-6) to play the ball!\n"
+            f"Example: /batting 4"
         )
         return
     
@@ -231,16 +228,16 @@ async def batting_command(client, message: Message):
     bowler_num = bowler_number_store.get(chat_id, 0)
     
     # Check if OUT (numbers match)
-    if bowler_num == number:
+    if bowler_num == number and bowler_num != 0:
         # WICKET!
         game["current_wickets"] = game.get("current_wickets", 0) + 1
         game["current_balls"] = game.get("current_balls", 0) + 1
         
         # Send OUT video
         if OUT_VIDEO_URL:
-            await client.send_video(chat_id, OUT_VIDEO_URL, caption=f"🎯 **Number matches, {message.from_user.first_name} is out!**")
+            await client.send_video(chat_id, OUT_VIDEO_URL, caption=f"🎯 **Number matches! {message.from_user.first_name} is out!**")
         else:
-            await message.reply_text(f"🎯 **Number matches, {message.from_user.first_name} is out!**")
+            await message.reply_text(f"🎯 **Number matches! {message.from_user.first_name} is out!**")
         
         response_time = random.randint(30, 150)
         await message.reply_text(
@@ -278,23 +275,26 @@ async def batting_command(client, message: Message):
     await message.reply_text(
         f"📊 Score: {game['current_runs']}/{game['current_wickets']}\n"
         f"📈 Balls: {game['current_balls']}/{(game.get('total_overs', 2) * 6)}\n"
-        f"⏱️ {response_time}ms"
+        f"⏱️ {response_time}ms\n\n"
+        f"Bowler: {bowler_num} | Batter: {number}"
     )
+    
+    # Clear stored numbers for next ball
+    bowler_number_store[chat_id] = 0
     
     # Check for match end
     if game['current_balls'] >= (game.get('total_overs', 2) * 6) or game['current_wickets'] >= 10:
         await end_match(client, message, chat_id)
         return
     
-    # Clear stored numbers for next ball
-    bowler_number_store[chat_id] = 0
-    
-    # Switch roles - bowler becomes batter for next ball
-    game["current_bowler"], game["current_batter"] = game.get("current_batter"), game.get("current_bowler")
+    # Next ball - ask bowler for number
+    game["bowling_status"] = "waiting_for_number"
     game["batting_status"] = "waiting_for_number"
     
-    # Show batting ratings to new batter
-    await show_batting_ratings_to_user(client, chat_id, game["current_batter"])
+    await client.send_message(
+        chat_id,
+        f"🔄 **Next ball! Bowler, send your number (1-6) on bot PM!**"
+    )
 
 
 async def switch_to_next_batsman(client, chat_id):
@@ -317,25 +317,9 @@ async def switch_to_next_batsman(client, chat_id):
             chat_id,
             f"🔄 **Hey {next_batter['first_name']}, now you're batting!**"
         )
-        await show_batting_ratings_to_user(client, chat_id, next_batter["user_id"])
     else:
         # No more batsmen - match over
         await end_match(client, None, chat_id)
-
-
-async def show_batting_ratings_to_user(client, chat_id, batter_id):
-    """Send batting ratings to batter in DM"""
-    ratings_text = " | ".join([f"{k} {v}" for k, v in BATTING_RATINGS.items()])
-    
-    try:
-        await client.send_message(
-            batter_id,
-            f"🏏 **Now Batter can send number (1-6)!!**\n\n"
-            f"📊 **Ratings:** {ratings_text}\n\n"
-            f"Send a number between 1-6 to play the ball!"
-        )
-    except Exception:
-        pass
 
 
 async def show_batting_ratings(callback_query):
@@ -376,23 +360,6 @@ async def take_run_selected(callback_query):
         "Send 1 or 2 on bot PM to take run!"
     )
     await callback_query.answer()
-
-
-def calculate_runs(number: int, speed: str) -> int:
-    """Calculate runs based on number and bowling speed"""
-    if number == 6:
-        return 6
-    elif number == 5:
-        return 4
-    elif number == 4:
-        return 4
-    elif number == 3:
-        return 3
-    elif number == 2:
-        return 2
-    elif number == 1:
-        return 1
-    return 0
 
 
 # ==================== MATCH CONTROL ====================
@@ -523,7 +490,7 @@ async def handle_batting_number(client, user_id, number_text):
                     bowler_num = bowler_number_store.get(chat_id, 0)
                     
                     # Check if OUT
-                    if bowler_num == number:
+                    if bowler_num == number and bowler_num != 0:
                         # WICKET!
                         game["current_wickets"] = game.get("current_wickets", 0) + 1
                         game["current_balls"] = game.get("current_balls", 0) + 1
