@@ -133,7 +133,7 @@ async def switch_to_next_bowler(client, chat_id):
 
 
 async def bowling_button_callback(callback_query):
-    """Handle bowling button click - send DM with batter info and number input"""
+    """Handle bowling button click - ask for number in DM (type manually)"""
     print("🔵 DEBUG: bowling_button_callback CALLED!")
     print(f"🔵 DEBUG: callback_query.data = {callback_query.data}")
     print(f"🔵 DEBUG: callback_query.from_user.id = {callback_query.from_user.id}")
@@ -164,47 +164,21 @@ async def bowling_button_callback(callback_query):
     bowler_name = game.get("bowler_name", "You")
     print(f"🔵 DEBUG: bowler_name = {bowler_name}")
     
-    # Get current batter name
-    current_batter_id = game.get("current_batter")
-    current_batter_name = "Unknown"
-    for player in game.get("players", []):
-        if player.get("user_id") == current_batter_id:
-            current_batter_name = player.get("first_name")
-            break
-    print(f"🔵 DEBUG: current_batter_name = {current_batter_name}")
-    
-    await callback_query.answer("Check your DM!")
+    await callback_query.answer("Check your DM! Send number 1-6")
     print("🔵 DEBUG: answer sent to user")
     
     # Update group message
     await callback_query.message.edit_text(f"✅ **{bowler_name} check your DM!**")
     print("🔵 DEBUG: Group message updated")
     
-    # Send DM to user with batter info and number buttons
+    # Send DM to user - ask to TYPE the number (no buttons)
     try:
-        print("🔵 DEBUG: Trying to send DM with number buttons...")
-        # Number buttons 1-6
-        number_buttons = []
-        row = []
-        for i in range(1, 7):
-            row.append(InlineKeyboardButton(str(i), callback_data=f"bowler_number_{i}", style=ButtonStyle.PRIMARY))
-            if len(row) == 3:
-                number_buttons.append(row)
-                row = []
-        if row:
-            number_buttons.append(row)
-        
-        # Add Group button
-        number_buttons.append([InlineKeyboardButton("🏏 Group", callback_data="bowler_back_to_group", style=ButtonStyle.DEFAULT)])
-        
-        buttons = InlineKeyboardMarkup(number_buttons)
-        
+        print("🔵 DEBUG: Trying to send DM...")
         await callback_query._client.send_message(
             user_id,
-            f"🎯 **Current batter: {current_batter_name}**\n\n"
-            f"Select your bowling number (1-6):\n\n"
-            f"⏰ You have 60 seconds!",
-            reply_markup=buttons
+            "🎯 **Send your bowling number (1-6)!**\n\n"
+            "Type a number between 1-6 and send.\n\n"
+            "⏰ You have 60 seconds!"
         )
         print("🔵 DEBUG: DM sent successfully!")
     except Exception as e:
@@ -440,7 +414,7 @@ async def end_match(client, message, chat_id):
 # ==================== DM MESSAGE HANDLER ====================
 
 async def handle_bowling_number(client, user_id, number_text):
-    """Handle bowling number received in DM"""
+    """Handle bowling number received in DM - NO group message"""
     for chat_id, game in active_games.items():
         if game.get("current_bowler") == user_id and game.get("bowling_status") == "waiting_for_number":
             try:
@@ -449,11 +423,7 @@ async def handle_bowling_number(client, user_id, number_text):
                     game["bowling_status"] = "completed"
                     # Store bowler's number
                     bowler_number_store[chat_id] = number
-                    await client.send_message(
-                        chat_id,
-                        f"🎯 **Bowler sent {number}**\n\n"
-                        f"Now batsman, send your number (1-6) in group!"
-                    )
+                    # ✅ NO group message - only DM confirmation
                     await client.send_message(user_id, f"✅ You sent {number}! Waiting for batsman...")
                     return True
                 else:
