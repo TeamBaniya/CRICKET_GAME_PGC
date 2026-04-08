@@ -7,7 +7,7 @@ from handlers.auction import auction_mode_menu
 from handlers.match import overs_selected
 from handlers.start import start_command, add_to_group_callback
 from handlers.vote import vote_game_callback
-from handlers.solo import solo_tree_community, solo_play_callback, solo_mode_menu as solo_menu
+from handlers.solo import solo_tree_community, solo_play_callback
 from config import BOWLING_SPEEDS_BUTTONS, UPDATES_LINK, SUPPORT_LINK
 
 async def callback_handler(client, callback_query: CallbackQuery):
