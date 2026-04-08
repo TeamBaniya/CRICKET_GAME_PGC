@@ -4,10 +4,15 @@ from pyrogram.enums import ButtonStyle
 from database import db
 from datetime import datetime, timedelta
 import asyncio
-from config import MEMBERS_LIST_IMAGE_URL
 
 # Store active games (import from game.py to use same dictionary)
 from handlers.game import active_games
+
+# Try to import image URL, if not exists use empty string
+try:
+    from config import MEMBERS_LIST_IMAGE_URL
+except ImportError:
+    MEMBERS_LIST_IMAGE_URL = ""
 
 join_timers = {}
 
@@ -76,7 +81,7 @@ async def update_game_message(client, chat_id, game):
         f"Join the game using `/joingame` ({minutes}:{seconds:02d} minutes left)\n\n"
         f"**Players joined:**\n{players_list}\n\n"
         f"**Total players:** {len(game['players'])}\n\n"
-        f"Game will start automatically when timer ends!"
+        f"Game will start automatically in {seconds} seconds!"
     )
     
     try:
@@ -91,28 +96,47 @@ async def update_game_message(client, chat_id, game):
         print(f"Error updating game message: {e}")
 
 
-async def start_join_warnings(client, chat_id):
-    """Send 10 seconds warning before game expires"""
-    await asyncio.sleep(110)  # 1 minute 50 seconds (2 min - 10 sec)
+async def start_timers(client, chat_id):
+    """Start all timers for a game"""
+    # 60 second warning
+    await asyncio.sleep(60)
+    if chat_id in active_games and active_games[chat_id]["status"] == "waiting":
+        await client.send_message(
+            chat_id,
+            "⏰ **60 seconds left! Join quickly using /joingame**"
+        )
     
+    # 30 second warning
+    await asyncio.sleep(30)
+    if chat_id in active_games and active_games[chat_id]["status"] == "waiting":
+        await client.send_message(
+            chat_id,
+            "⚠️ **30 seconds left only, /joingame !!**"
+        )
+    
+    # 10 second warning
+    await asyncio.sleep(20)
     if chat_id in active_games and active_games[chat_id]["status"] == "waiting":
         await client.send_message(
             chat_id,
             "⏰ **Last 10 seconds left only, /joingame !!**"
         )
+    
+    # 10 more seconds = total 120 seconds (2 minutes)
+    await asyncio.sleep(10)
+    
+    # Auto start game after 2 minutes
+    await auto_start_game(client, chat_id)
 
 
 async def auto_start_game(client, chat_id):
-    """Auto start game after timer and send members list image"""
-    # Wait for 2 minutes
-    await asyncio.sleep(120)
-    
+    """Auto start game after timer and send members list image (no button)"""
     if chat_id in active_games:
         game = active_games[chat_id]
         if game["status"] == "waiting":
             game["status"] = "starting"
             
-            # Send members list image with players
+            # Send members list image WITHOUT any button
             players_list = ""
             for i, player in enumerate(game["players"], 1):
                 username = f"@{player['username']}" if player.get('username') else player['first_name']
@@ -135,17 +159,22 @@ async def auto_start_game(client, chat_id):
             else:
                 await client.send_message(chat_id, caption)
             
-            # Wait 10 more seconds
-            await asyncio.sleep(10)
-            
-            # Start the game
+            # Start the game immediately (no extra button)
             game["status"] = "live"
+            
+            # Set current batter and bowler
+            game["current_batter_index"] = 0
+            game["current_bowler_index"] = 1 if len(game["players"]) > 1 else 0
+            game["current_batter"] = game["players"][game["current_batter_index"]]["user_id"]
+            game["current_bowler"] = game["players"][game["current_bowler_index"]]["user_id"]
+            
             await client.send_message(
                 chat_id,
                 f"🏏 **GAME STARTING!** 🏏\n\n"
                 f"👥 Total players: {len(game['players'])}\n\n"
-                f"👉 **{game['players'][0]['first_name']}**, you're bowling first!\n\n"
-                f"Use /bowling to start!"
+                f"🎯 **Bowler:** {game['players'][game['current_bowler_index']]['first_name']}\n"
+                f"🏏 **Batter:** {game['players'][game['current_batter_index']]['first_name']}\n\n"
+                f"Use `/bowling` to start bowling!"
             )
 
 
