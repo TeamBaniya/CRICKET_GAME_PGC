@@ -87,15 +87,18 @@ async def overs_selected(callback_query, overs):
         [InlineKeyboardButton("◀️ BACK", callback_data="back_to_game", style=ButtonStyle.DEFAULT)]
     ])
     
-    await callback_query.message.edit_text(
+    new_text = (
         f"🎉 **OHOO! 👏 Let's play a {overs} overs Match!!**\n\n"
         f"🏏 **Team B will bowl first!**\n\n"
         f"📊 **Match ID:** `{match_data['match_id']}`\n"
         f"👤 **Host:** {user.first_name}\n\n"
         f"Now, type /bowling to choose the bowling member!\n\n"
-        f"Or click **Join Game** to participate!",
-        reply_markup=buttons
+        f"Or click **Join Game** to participate!"
     )
+    
+    # Check if message content is different before editing
+    if callback_query.message.text != new_text:
+        await callback_query.message.edit_text(new_text, reply_markup=buttons)
     await callback_query.answer()
 
 
@@ -140,13 +143,16 @@ async def join_game_callback(callback_query):
         [InlineKeyboardButton("◀️ BACK", callback_data="back_to_game", style=ButtonStyle.DEFAULT)]
     ])
     
-    await callback_query.message.edit_text(
+    new_text = (
         f"🎉 **OHOO! 👏 Let's play a {match['total_overs']} overs Match!!**\n\n"
         f"🏏 **Team B will bowl first!**\n\n"
         f"**Players joined:**\n{players_list}\n\n"
-        f"Type /bowling to choose the bowling member!",
-        reply_markup=buttons
+        f"Type /bowling to choose the bowling member!"
     )
+    
+    # Check if message content is different before editing
+    if callback_query.message.text != new_text:
+        await callback_query.message.edit_text(new_text, reply_markup=buttons)
 
 
 async def set_bowler(callback_query, user_id):
@@ -205,7 +211,6 @@ async def update_match_score(chat_id, runs, is_wicket=False):
     # Check if innings is over
     if match["current_balls"] >= match["total_balls"] or match["current_wickets"] >= 10:
         match["status"] = "completed"
-        # ✅ FIXED: Added missing closing bracket
         await db.update_match(match["match_id"], {"status": "completed", "final_score": f"{match['current_runs']}/{match['current_wickets']}"})
     
     return match
