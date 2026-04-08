@@ -149,9 +149,7 @@ async def solo_mode_menu(callback_query):
 
 
 async def team_mode_menu(callback_query):
-    """Team mode menu with video and inline buttons (as per screenshot)"""
-    from config import TEAM_PLAY_VIDEO_URL
-    
+    """Team mode menu with inline buttons - No video"""
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("START", callback_data="team_start", style=ButtonStyle.SUCCESS),
@@ -168,10 +166,8 @@ async def team_mode_menu(callback_query):
         ]
     ])
     
-    await callback_query.message.delete()
-    await callback_query.message.reply_video(
-        video=TEAM_PLAY_VIDEO_URL,
-        caption=TEAM_MODE_MESSAGE,
+    await callback_query.message.edit_text(
+        TEAM_MODE_MESSAGE,
         reply_markup=buttons
     )
     await callback_query.answer()
