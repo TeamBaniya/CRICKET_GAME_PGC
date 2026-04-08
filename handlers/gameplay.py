@@ -1,73 +1,72 @@
-# TODO: Add your code here
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ButtonStyle
 from database import db
-from config import BOWLING_VIDEO_URL, BATTING_VIDEO_URL, OUT_VIDEO_URL, WICKET_VIDEO_URL, SIX_VIDEO_URL, FOUR_VIDEO_URL
+from config import BOT_USERNAME, BOWLING_VIDEO_URL, BATTING_VIDEO_URL, OUT_VIDEO_URL, WICKET_VIDEO_URL, SIX_VIDEO_URL, FOUR_VIDEO_URL
 import random
 import asyncio
 from handlers.game import active_games
 from datetime import datetime
 
-# Store active game sessions
-bowling_timers = {}
-batting_timers = {}
-
-# Store bowler and batter numbers
+# Store bowler number
 bowler_number_store = {}
-batter_number_store = {}
 
 
-# ==================== BOWLING COMMANDS ====================
+# ==================== BOWLING COMMAND ====================
 
 async def bowling_command(client, message: Message):
-    """/bowling command - Show only bowling button (no speed buttons)"""
+    """/bowling command - Deep link to DM"""
     user_id = message.from_user.id
     chat_id = message.chat.id
-    
-    # Check if user is the current bowler
+
     if chat_id not in active_games:
-        await message.reply_text("❌ No active game found! Use /startgame first.")
+        await message.reply_text("❌ No active game found!")
         return
-    
+
     game = active_games[chat_id]
+
     if game.get("current_bowler") != user_id:
-        await message.reply_text("❌ You are not the current bowler!")
+        await message.reply_text("❌ You are not the bowler!")
         return
-    
-    # Set bowling status
+
     game["bowling_status"] = "waiting_for_number"
     game["bowler_name"] = message.from_user.first_name
     game["bowler_id"] = user_id
-    
-    # ONLY Bowling button - NO speed buttons
-    buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🏏 Bowling", callback_data="bowling_btn", style=ButtonStyle.PRIMARY)]
-    ])
-    
+
     # Send message first
     await message.reply_text(
         f"🎯 **Hey {message.from_user.first_name}, now you're bowling!**"
     )
-    
+
     # Wait 2 seconds
     await asyncio.sleep(2)
-    
-    # Send bowling video with button and caption
+
+    # 🔥 Deep Link Button (Direct DM open)
+    buttons = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(
+                "🏏 Bowling",
+                url=f"https://t.me/{BOT_USERNAME}?start=bowling_{chat_id}",
+                style=ButtonStyle.PRIMARY
+            )
+        ]
+    ])
+
+    # Send bowling video with button
     if BOWLING_VIDEO_URL:
         await client.send_video(
             chat_id,
             video=BOWLING_VIDEO_URL,
-            caption=f"👏 **{message.from_user.first_name} now you can send number on bot pm, You have 1 min.**",
+            caption=f"👏 **{message.from_user.first_name} click below to send your number!**",
             reply_markup=buttons
         )
     else:
         await client.send_message(
             chat_id,
-            f"👏 **{message.from_user.first_name} now you can send number on bot pm, You have 1 min.**",
+            f"👏 **{message.from_user.first_name} click below to send your number!**",
             reply_markup=buttons
         )
-    
-    # Start 60 second timer with bowler tag
+
+    # Start 60 second timer
     await start_bowling_timer(client, chat_id, message.from_user.first_name, user_id)
 
 
@@ -131,48 +130,6 @@ async def switch_to_next_bowler(client, chat_id):
         f"🔄 **Hey {next_bowler['first_name']}, now you're bowling!**"
     )
 
-
-async def bowling_button_callback(callback_query):
-    """Handle bowling button click - direct DM (no group message, no button)"""
-    print("🔵 DEBUG: bowling_button_callback CALLED!")
-    
-    user_id = callback_query.from_user.id
-    chat_id = callback_query.message.chat.id
-    
-    if chat_id not in active_games:
-        await callback_query.answer("No active game!", show_alert=True)
-        return
-    
-    game = active_games[chat_id]
-    if game.get("current_bowler") != user_id:
-        await callback_query.answer("You are not the current bowler!", show_alert=True)
-        return
-    
-    if game.get("bowling_status") != "waiting_for_number":
-        await callback_query.answer("Already processed!", show_alert=True)
-        return
-    
-    # ✅ Delete the group message - nothing stays in group
-    try:
-        await callback_query.message.delete()
-    except:
-        pass
-    
-    await callback_query.answer("Opening DM...")
-    
-    # Send DM to user directly (no group message)
-    try:
-        await callback_query._client.send_message(
-            user_id,
-            "🎯 **Send your bowling number (1-6)!**\n\n"
-            "Type a number between 1-6 and send.\n\n"
-            "⏰ You have 60 seconds!"
-        )
-        print("🔵 DEBUG: DM sent successfully!")
-    except Exception as e:
-        print(f"🔴 DEBUG: Cannot send DM! Error: {e}")
-        # Can't send DM, so show error in group
-        await callback_query.message.reply_text(f"❌ Cannot send DM! Please start the bot in private first.")
 
 # ==================== GROUP BATTING HANDLER ====================
 
@@ -364,14 +321,6 @@ async def end_match_command(client, message: Message):
         # Clear stored numbers
         if chat_id in bowler_number_store:
             del bowler_number_store[chat_id]
-        if chat_id in batter_number_store:
-            del batter_number_store[chat_id]
-        
-        # Cancel timers
-        if chat_id in bowling_timers:
-            bowling_timers[chat_id].cancel()
-        if chat_id in batting_timers:
-            batting_timers[chat_id].cancel()
     else:
         await message.reply_text("❌ No active game found!")
 
@@ -395,27 +344,3 @@ async def end_match(client, message, chat_id):
         # Clear stored numbers
         if chat_id in bowler_number_store:
             del bowler_number_store[chat_id]
-        if chat_id in batter_number_store:
-            del batter_number_store[chat_id]
-
-
-# ==================== DM MESSAGE HANDLER ====================
-
-async def handle_bowling_number(client, user_id, number_text):
-    """Handle bowling number received in DM - NO group message"""
-    for chat_id, game in active_games.items():
-        if game.get("current_bowler") == user_id and game.get("bowling_status") == "waiting_for_number":
-            try:
-                number = int(number_text)
-                if 1 <= number <= 6:
-                    game["bowling_status"] = "completed"
-                    # Store bowler's number
-                    bowler_number_store[chat_id] = number
-                    # ✅ NO group message - only DM confirmation
-                    await client.send_message(user_id, f"✅ You sent {number}! Waiting for batsman...")
-                    return True
-                else:
-                    await client.send_message(user_id, "❌ Please send number between 1-6!")
-            except ValueError:
-                await client.send_message(user_id, "❌ Please send a number between 1-6!")
-    return False
