@@ -5,10 +5,10 @@ from database import db
 from config import BOWLING_VIDEO_URL, BATTING_VIDEO_URL, OUT_VIDEO_URL, WICKET_VIDEO_URL, SIX_VIDEO_URL, FOUR_VIDEO_URL
 import random
 import asyncio
+from handlers.game import active_games
 from datetime import datetime
 
 # Store active game sessions
-active_games = {}
 bowling_timers = {}
 batting_timers = {}
 
