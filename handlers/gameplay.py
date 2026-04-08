@@ -36,39 +36,43 @@ async def bowling_command(client, message: Message):
     
     # Set bowling status
     game["bowling_status"] = "waiting_for_number"
+    game["bowler_name"] = message.from_user.first_name
+    game["bowler_id"] = user_id
     
     # ONLY Bowling button - NO speed buttons
     buttons = InlineKeyboardMarkup([
         [InlineKeyboardButton("🏏 Bowling", callback_data="bowling_btn", style=ButtonStyle.PRIMARY)]
     ])
     
-    # Send message
+    # Send message first
     await message.reply_text(
-        f"🎯 **Hey {message.from_user.first_name}, now you're bowling!**\n\n"
-        f"⏰ You have 60 seconds!\n\n"
-        f"Click the button below to send your number!"
+        f"🎯 **Hey {message.from_user.first_name}, now you're bowling!**"
     )
     
-    # Send bowling video with button (if video exists)
+    # Wait 2 seconds
+    await asyncio.sleep(2)
+    
+    # Send bowling video with button and caption
     if BOWLING_VIDEO_URL:
         await client.send_video(
             chat_id,
             video=BOWLING_VIDEO_URL,
-            caption="👏 Click below to send number on bot PM!",
+            caption=f"👏 **{message.from_user.first_name} now you can send number on bot pm, You have 1 min.**",
             reply_markup=buttons
         )
     else:
-        await message.reply_text(
-            "👏 Click below to send number on bot PM!",
+        await client.send_message(
+            chat_id,
+            f"👏 **{message.from_user.first_name} now you can send number on bot pm, You have 1 min.**",
             reply_markup=buttons
         )
     
-    # Start 60 second timer
-    await start_bowling_timer(client, chat_id, message.from_user.first_name)
+    # Start 60 second timer with bowler tag
+    await start_bowling_timer(client, chat_id, message.from_user.first_name, user_id)
 
 
-async def start_bowling_timer(client, chat_id, bowler_name):
-    """60 second timer for bowler to send number"""
+async def start_bowling_timer(client, chat_id, bowler_name, bowler_id):
+    """60 second timer for bowler to send number with mentions"""
     for remaining in range(60, 0, -1):
         if chat_id not in active_games:
             return
@@ -80,12 +84,12 @@ async def start_bowling_timer(client, chat_id, bowler_name):
         if remaining == 30:
             await client.send_message(
                 chat_id,
-                f"⚠️ **Warning: {bowler_name}, you have 30 seconds left to send a number!**"
+                f"⚠️ **@{bowler_name} you have 30 seconds left! Please send your number quickly!**"
             )
         elif remaining == 10:
             await client.send_message(
                 chat_id,
-                f"⚠️ **Warning: {bowler_name}, you have 10 seconds left to send a number!**"
+                f"⏰ **@{bowler_name} Last 10 seconds! Send your number NOW!**"
             )
         
         await asyncio.sleep(1)
@@ -94,8 +98,8 @@ async def start_bowling_timer(client, chat_id, bowler_name):
     if chat_id in active_games and active_games[chat_id].get("bowling_status") == "waiting_for_number":
         await client.send_message(
             chat_id,
-            "⏰ **No message received from bowler, deducting 6 runs of bowler.**\n\n"
-            "❌ **Seems Bowling player is not responding, User Eliminated from the game !!**"
+            f"⏰ **No message received from @{bowler_name}, deducting 6 runs of bowler.**\n\n"
+            f"❌ **Seems Bowling player is not responding, User Eliminated from the game !!**"
         )
         
         # Switch to next bowler
@@ -119,6 +123,8 @@ async def switch_to_next_bowler(client, chat_id):
     game["current_bowler"] = next_bowler["user_id"]
     game["current_bowler_index"] = next_index
     game["bowling_status"] = "waiting_for_number"
+    game["bowler_name"] = next_bowler["first_name"]
+    game["bowler_id"] = next_bowler["user_id"]
     
     await client.send_message(
         chat_id,
@@ -144,6 +150,7 @@ async def bowling_button_callback(callback_query):
         await callback_query.answer("Already processed!", show_alert=True)
         return
     
+    bowler_name = game.get("bowler_name", "You")
     await callback_query.answer("Check your DM! Send number 1-6")
     
     # Send DM to user
@@ -157,7 +164,7 @@ async def bowling_button_callback(callback_query):
     except Exception:
         await callback_query.message.reply_text("❌ Cannot send DM! Please start the bot in private first.")
     
-    await callback_query.message.edit_text("✅ Check your DM! Send number 1-6")
+    await callback_query.message.edit_text(f"✅ **{bowler_name} check your DM! Send number 1-6**")
 
 
 # ==================== GROUP BATTING HANDLER ====================
