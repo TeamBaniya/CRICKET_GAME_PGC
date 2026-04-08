@@ -1,13 +1,11 @@
 # TODO: Add your code here
 from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ButtonStyle
-from handlers.help import game_instructions_menu, solo_mode_menu, back_to_game_instructions
-from handlers.team import team_mode_menu
+from handlers.help import game_instructions_menu, solo_mode_menu, back_to_game_instructions, team_mode_menu
 from handlers.auction import auction_mode_menu
 from handlers.match import overs_selected
 from handlers.start import start_command, add_to_group_callback
-from handlers.vote import vote_game_callback
-from handlers.solo import solo_tree_community, solo_play_callback
+from handlers.solo import solo_play_callback
 from config import BOWLING_SPEEDS_BUTTONS, UPDATES_LINK, SUPPORT_LINK
 
 async def callback_handler(client, callback_query: CallbackQuery):
@@ -75,12 +73,6 @@ async def callback_handler(client, callback_query: CallbackQuery):
     elif data == "auction_mode" or data == "auction":
         await auction_mode_menu(callback_query)
     
-    elif data == "vote_game":
-        await vote_game_callback(callback_query)
-    
-    elif data == "solo_tree":
-        await solo_tree_community(callback_query)
-    
     # ========== OVERS SELECTION ==========
     elif data.startswith("overs_"):
         overs = int(data.split("_")[1])
@@ -112,6 +104,49 @@ async def callback_handler(client, callback_query: CallbackQuery):
     elif data == "batting_select":
         from handlers.gameplay import show_batting_ratings
         await show_batting_ratings(callback_query)
+    
+    # ========== TEAM MODE VIDEO CALLBACKS ==========
+    elif data == "team_start":
+        from config import TEAM_START_VIDEO_URL
+        await callback_query.message.reply_video(
+            video=TEAM_START_VIDEO_URL,
+            caption="🎮 **START**\n\nUse /add_A and /add_B to add players to teams."
+        )
+    
+    elif data == "team_add":
+        from config import TEAM_ADD_VIDEO_URL
+        await callback_query.message.reply_video(
+            video=TEAM_ADD_VIDEO_URL,
+            caption="➕ **ADD MEMBERS**\n\n/add_A @username - Add to Team A\n/add_B @username - Add to Team B"
+        )
+    
+    elif data == "team_remove":
+        from config import TEAM_REMOVE_VIDEO_URL
+        await callback_query.message.reply_video(
+            video=TEAM_REMOVE_VIDEO_URL,
+            caption="❌ **REMOVE MEMBERS**\n\n/remove_A <number> - Remove from Team A\n/remove_B <number> - Remove from Team B"
+        )
+    
+    elif data == "team_startgame":
+        from config import TEAM_STARTGAME_VIDEO_URL
+        await callback_query.message.reply_video(
+            video=TEAM_STARTGAME_VIDEO_URL,
+            caption="🏏 **START GAME**\n\nUse /startgame to begin the match after teams are ready!"
+        )
+    
+    elif data == "team_bowling":
+        from config import TEAM_BOWLING_VIDEO_URL
+        await callback_query.message.reply_video(
+            video=TEAM_BOWLING_VIDEO_URL,
+            caption="🎯 **BOWLING**\n\n/bowling <speed> - Select bowling speed\nExample: /bowling FAST"
+        )
+    
+    elif data == "team_batting":
+        from config import TEAM_BATTING_VIDEO_URL
+        await callback_query.message.reply_video(
+            video=TEAM_BATTING_VIDEO_URL,
+            caption="🏏 **BATTING**\n\n/batting <number> - Play your shot\nExample: /batting 4"
+        )
     
     # ========== AUCTION CALLBACKS ==========
     elif data == "auction_bid":
@@ -167,19 +202,6 @@ async def callback_handler(client, callback_query: CallbackQuery):
     
     elif data == "back_to_game_instructions":
         await back_to_game_instructions(callback_query)
-    
-    # ========== SOLO MULTI CALLBACKS ==========
-    elif data == "solo_multi_start":
-        from handlers.solo import solo_multi_start_callback
-        await solo_multi_start_callback(callback_query)
-    
-    elif data == "solo_multi_cancel":
-        from handlers.solo import solo_multi_cancel_callback
-        await solo_multi_cancel_callback(callback_query)
-    
-    elif data == "solo_multi_new":
-        from handlers.solo import solo_multi_new_callback
-        await solo_multi_new_callback(callback_query)
     
     # ========== SOLO STATS & LEADERBOARD ==========
     elif data == "solo_stats":
