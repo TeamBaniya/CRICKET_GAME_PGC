@@ -41,6 +41,7 @@ async def create_solo_game(callback_query):
             "name": user.first_name, 
             "player_number": 1,
             "username": user.username,
+            "first_name": user.first_name,
             "runs": 0,
             "balls": 0,
             "wickets": 0
@@ -115,8 +116,8 @@ async def start_solo_match_callback(callback_query):
             "🏏 **SOLO MATCH STARTING!** 🏏\n\n"
             f"👥 Total players: {len(game['players'])}\n\n"
             "Each player will bat one by one!\n\n"
-            f"👉 **{game['players'][0]['name']}**, you're batting first!\n\n"
-            "Send numbers 1-6 on bot PM to play!"
+            f"👉 **{game['players'][0]['first_name']}**, you're batting first!\n\n"
+            "Send numbers 1-6 in group to play!"
         )
     await callback_query.answer()
 
@@ -136,6 +137,7 @@ async def create_team_game(callback_query):
             "name": user.first_name, 
             "player_number": 1, 
             "username": user.username,
+            "first_name": user.first_name,
             "team": None,
             "runs": 0,
             "balls": 0,
@@ -169,30 +171,3 @@ async def delete_active_game(chat_id):
         del active_games[chat_id]
         return True
     return False
-
-
-async def update_game_message(client, chat_id, game):
-    """Update the game message with player count"""
-    players_list = "\n".join([
-        f"  {p['player_number']}. {p['name']}"
-        for p in game["players"]
-    ])
-    
-    time_left = (game["expires_at"] - datetime.now()).seconds
-    minutes = time_left // 60
-    seconds = time_left % 60
-    
-    game_type = "Solo" if game["type"] == "solo" else "Team"
-    
-    try:
-        await client.edit_message_text(
-            chat_id,
-            game["message_id"],
-            f"🎉 **{game_type} Game Created!** 🎉\n\n"
-            f"Join the game using `/joingame` ({minutes}:{seconds:02d} minutes left)\n\n"
-            f"**Players joined:**\n{players_list}\n\n"
-            f"**Total players:** {len(game['players'])}\n\n"
-            f"Type `/startgame` when ready!"
-        )
-    except:
-        pass
