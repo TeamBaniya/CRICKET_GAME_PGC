@@ -4,6 +4,7 @@ from pyrogram.enums import ButtonStyle
 from database import db
 from datetime import datetime, timedelta
 import asyncio
+from config import MEMBERS_LIST_IMAGE_URL
 
 # Store active games (import from game.py to use same dictionary)
 from handlers.game import active_games
@@ -75,7 +76,7 @@ async def update_game_message(client, chat_id, game):
         f"Join the game using `/joingame` ({minutes}:{seconds:02d} minutes left)\n\n"
         f"**Players joined:**\n{players_list}\n\n"
         f"**Total players:** {len(game['players'])}\n\n"
-        f"Type `/startgame` when ready!"
+        f"Game will start automatically in {seconds} seconds!"
     )
     
     try:
@@ -88,6 +89,47 @@ async def update_game_message(client, chat_id, game):
             )
     except Exception as e:
         print(f"Error updating game message: {e}")
+
+
+async def auto_start_game(client, chat_id, game):
+    """Auto start game after timer and send members list image"""
+    # Wait for 2 minutes
+    await asyncio.sleep(120)
+    
+    if chat_id in active_games:
+        game = active_games[chat_id]
+        if game["status"] == "waiting":
+            game["status"] = "starting"
+            
+            # Send members list image
+            players_list = ""
+            for i, player in enumerate(game["players"], 1):
+                username = f"@{player['username']}" if player.get('username') else player['first_name']
+                players_list += f"{i}. {username}\n"
+            
+            caption = f"🏏 **CRICKET GAME PLAYERS**\n🌳 **SOLO TREE COMMUNITY**\n\n**Unknown Host**\n**Solo Players**\n\n{players_list}"
+            
+            if MEMBERS_LIST_IMAGE_URL:
+                await client.send_photo(
+                    chat_id,
+                    photo=MEMBERS_LIST_IMAGE_URL,
+                    caption=caption
+                )
+            else:
+                await client.send_message(chat_id, caption)
+            
+            # Wait 10 more seconds
+            await asyncio.sleep(10)
+            
+            # Start the game
+            game["status"] = "live"
+            await client.send_message(
+                chat_id,
+                f"🏏 **GAME STARTING!** 🏏\n\n"
+                f"👥 Total players: {len(game['players'])}\n\n"
+                f"👉 **{game['players'][0]['first_name']}**, you're bowling first!\n\n"
+                f"Use /bowling to start!"
+            )
 
 
 async def get_active_game(chat_id):
