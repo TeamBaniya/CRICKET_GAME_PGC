@@ -119,14 +119,9 @@ async def game_instructions_menu(callback_query):
 
 
 async def solo_mode_menu(callback_query):
-    """Solo mode menu - without image, only text commands"""
+    """Solo mode menu - Only BACK button (no Start/Stats buttons)"""
     buttons = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🎮 Start Solo Match", callback_data="solo_start", style=ButtonStyle.SUCCESS),
-            InlineKeyboardButton("📊 My Stats", callback_data="solo_stats", style=ButtonStyle.PRIMARY)
-        ],
-        [
-            InlineKeyboardButton("🏆 Leaderboard", callback_data="solo_leaderboard", style=ButtonStyle.PRIMARY),
             InlineKeyboardButton("◀️ BACK", callback_data="back_to_game_instructions", style=ButtonStyle.DEFAULT)
         ]
     ])
@@ -138,12 +133,8 @@ async def solo_mode_menu(callback_query):
 
 
 async def team_mode_menu(callback_query):
-    """Team mode specific menu"""
+    """Team mode menu - Only BACK button"""
     buttons = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🏏 Start Match", callback_data="start_match", style=ButtonStyle.SUCCESS),
-            InlineKeyboardButton("📋 Rules", callback_data="team_rules", style=ButtonStyle.DEFAULT)
-        ],
         [
             InlineKeyboardButton("◀️ BACK", callback_data="back_to_game_instructions", style=ButtonStyle.DEFAULT)
         ]
@@ -156,12 +147,8 @@ async def team_mode_menu(callback_query):
 
 
 async def auction_menu(callback_query):
-    """Auction mode specific menu"""
+    """Auction mode menu - Only BACK button"""
     buttons = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("💰 Start Auction", callback_data="start_auction", style=ButtonStyle.SUCCESS),
-            InlineKeyboardButton("📋 Rules", callback_data="auction_rules", style=ButtonStyle.DEFAULT)
-        ],
         [
             InlineKeyboardButton("◀️ BACK", callback_data="back_to_game_instructions", style=ButtonStyle.DEFAULT)
         ]
