@@ -160,20 +160,36 @@ async def auto_start_game(client, chat_id):
             else:
                 await client.send_message(chat_id, caption)
             
-            # Set current bowler and batter for match.py
+            # ✅ Set current bowler and batter in active_games (not just match)
+            players = game["players"]
+            if len(players) >= 2:
+                game["current_bowler_index"] = 0
+                game["current_batter_index"] = 1
+                game["current_bowler"] = players[0]["user_id"]
+                game["current_batter"] = players[1]["user_id"]
+                game["bowler_name"] = players[0]["first_name"]
+                game["bowling_status"] = "waiting_for_number"
+                game["batting_status"] = "waiting"
+                print(f"🔵 DEBUG: current_bowler set to {game['current_bowler']} (should be {players[0]['user_id']})")
+            else:
+                game["current_bowler_index"] = 0
+                game["current_batter_index"] = 0
+                game["current_bowler"] = players[0]["user_id"]
+                game["current_batter"] = players[0]["user_id"]
+                game["bowler_name"] = players[0]["first_name"]
+                game["bowling_status"] = "waiting_for_number"
+                print(f"🔵 DEBUG: Solo mode - current_bowler set to {game['current_bowler']}")
+            
+            # Also set in active_matches for compatibility
             from handlers.match import active_matches
             if chat_id in active_matches:
-                match = active_matches[chat_id]
-                match["players"] = game["players"]
-                match["current_bowler_index"] = 0
-                match["current_batter_index"] = 1 if len(game["players"]) > 1 else 0
-                match["current_bowler"] = game["players"][0]["user_id"]
-                match["current_batter"] = game["players"][match["current_batter_index"]]["user_id"]
-                match["bowling_status"] = "waiting_for_number"
-                match["batting_status"] = "waiting"
+                active_matches[chat_id]["players"] = game["players"]
+                active_matches[chat_id]["current_bowler"] = game["current_bowler"]
+                active_matches[chat_id]["current_batter"] = game["current_batter"]
+                active_matches[chat_id]["bowling_status"] = "waiting_for_number"
             
-            # Directly send bowling screen (no extra "Use /bowling" message)
-            await send_bowling_screen_direct(client, chat_id, game["players"][0]["first_name"])
+            # Directly send bowling screen
+            await send_bowling_screen_direct(client, chat_id, game["bowler_name"])
 
 
 async def send_bowling_screen_direct(client, chat_id, bowler_name):
