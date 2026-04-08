@@ -43,35 +43,55 @@ Ready to play? Let's see your skills on the field! 🌟
 """
 
 TEAM_MODE_MESSAGE = """
-👥 **Team Mode:**
+🌟 𝐌ᴇᴍʙᴇʀs 𝐀ᴅᴅɪɴɢ:
 
-• /startgame: Start a new team match
+/add_A - add members to team A  
+/add_B - add members to team B  
 
-• /add_A @username - Add member to Team A
-• /add_B @username - Add member to Team B
+Eg: /add_A 1  or /add_A @username  
+(Use the player number of your team)
 
-• /join_teamA - Join Team A
-• /join_teamB - Join Team B
+🌟 𝐌ᴇᴍʙᴇʀs 𝐑ᴇᴍᴏᴠɪɴɢ:
 
-• /members_list - View team members
+/remove_A - remove members from team A  
+/remove_B - remove members from team B  
 
-• /end_match - End the current game
+Eg: /remove_A 2  
+(Use the player number of your team)
+
+🌟 𝐆ᴀᴍᴇ 𝐏ʟᴀʏ 𝐂ᴏᴍᴍᴀɴᴅs:
+
+/startgame - to start the game  
+
+/bowling - choose the bowling person of team A or B  
+Eg: /bowling 3  
+(Use the team A or B player number for bowling)
+
+/batting - choose the batting person of team A or B  
+Eg: /batting 4  
+(Use the team A or B player number for batting)
+
+/swap - to change the playing position of the current team  
+
+/end_match - to end the current game  
+
+/Feedback - give your feedback about the game
 """
 
 AUCTION_MESSAGE = """
 💰 **Auction Mode:**
 
-• /add_cap - Add auction captain
-• /rm_cap - Remove auction captain
-• /cap_change_auction - Change auction captain
-• /auction_id - Send auction player ID
-• /start_auction - Start auction
-• /pause_auction - Pause auction
-• /resume_auction - Resume auction
-• /auction_host_change - Change auction host
-• /xp - Put value on player
-• /unhold - Unsold player list
-• /rm_auction_id - Remove sold player
+/add_cap - add auction captain ➕
+/rm_cap - remove auction captain ➖
+/cap_change_auction - change the auction captain
+/auction_id - send auction player id 🆔
+/start_auction - start auction 🏁
+/pause_auction - pause the auction ⏸️
+/resume_auction - resume the auction ▶️
+/auction_host_change - change the auction host 👑
+/xp - auction player put value 💰
+/unsold - auction player unsold list 📋
+/rm_auction_id - remove auction sold player ❌
 """
 
 async def help_command(client, message: Message):
