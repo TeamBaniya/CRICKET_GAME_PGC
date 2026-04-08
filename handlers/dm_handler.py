@@ -185,7 +185,6 @@ async def handle_dm_message(client, message: Message):
                         game["bowling_status"] = "waiting_for_number"
                         game["batting_status"] = "waiting_for_number"
                         
-                        # Switch roles - bowler becomes batter for next ball? No, new bowler
                         # Find next bowler
                         players = game.get("players", [])
                         current_bowler_index = game.get("current_bowler_index", 0)
@@ -197,7 +196,7 @@ async def handle_dm_message(client, message: Message):
                         
                         await client.send_message(
                             chat_id,
-                            f"🔄 **Next ball! Hey {next_bowler['first_name']}, send your number (1-6) on bot PM!**"
+                            f"🔄 **Next ball! Hey {next_bowler['first_name']}, click the BOWLING button!**"
                         )
                     return
             else:
@@ -266,7 +265,7 @@ async def switch_to_next_batsman_team(client, chat_id, game):
         
         await client.send_message(
             chat_id,
-            f"🔄 **New batsman! Hey {next_batter['first_name']}, send your number (1-6) on bot PM!**"
+            f"🔄 **New batsman! Hey {next_batter['first_name']}, send your number (1-6) in group!**"
         )
     else:
         # No more batsmen - match over
