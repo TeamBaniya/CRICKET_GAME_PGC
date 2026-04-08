@@ -2,7 +2,7 @@
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ButtonStyle
 from database import db
-from config import BOWLING_SPEEDS_BUTTONS, BATTING_RATINGS, BOWLING_VIDEO_URL, BATTING_VIDEO_URL, OUT_VIDEO_URL, SIX_VIDEO_URL, FOUR_VIDEO_URL
+from config import BOWLING_VIDEO_URL, BATTING_VIDEO_URL, OUT_VIDEO_URL, WICKET_VIDEO_URL, SIX_VIDEO_URL, FOUR_VIDEO_URL
 import random
 import asyncio
 from datetime import datetime
@@ -20,10 +20,9 @@ batter_number_store = {}
 # ==================== BOWLING COMMANDS ====================
 
 async def bowling_command(client, message: Message):
-    """/bowling command - Select bowler"""
+    """/bowling command - Show bowling button only"""
     user_id = message.from_user.id
     chat_id = message.chat.id
-    args = message.text.split()
     
     # Check if user is the current bowler
     if chat_id not in active_games:
@@ -35,53 +34,33 @@ async def bowling_command(client, message: Message):
         await message.reply_text("❌ You are not the current bowler!")
         return
     
-    if len(args) < 2:
-        # Show bowling speed buttons
-        buttons = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("FAST", callback_data="bowl_speed_fast", style=ButtonStyle.PRIMARY),
-                InlineKeyboardButton("PHYSICAL", callback_data="bowl_speed_physical", style=ButtonStyle.PRIMARY),
-                InlineKeyboardButton("63", callback_data="bowl_speed_63", style=ButtonStyle.PRIMARY)
-            ],
-            [
-                InlineKeyboardButton("🏏 Bowling", callback_data="bowling_select", style=ButtonStyle.SUCCESS)
-            ]
-        ])
-        
-        if BOWLING_VIDEO_URL:
-            await client.send_video(
-                chat_id,
-                video=BOWLING_VIDEO_URL,
-                caption=f"🎯 **Hey {message.from_user.first_name}, now you're bowling!**\n\nChoose your bowling speed:",
-                reply_markup=buttons
-            )
-        else:
-            await message.reply_text(
-                f"🎯 **Hey {message.from_user.first_name}, now you're bowling!**\n\n"
-                f"Choose your bowling speed:\n\nFAST | PHYSICAL | 63",
-                reply_markup=buttons
-            )
-        return
-    
-    speed = args[1].upper()
-    if speed not in ["FAST", "PHYSICAL", "63"]:
-        await message.reply_text(
-            f"❌ Invalid speed! Choose from: FAST, PHYSICAL, 63"
-        )
-        return
-    
-    # Save bowling selection
-    game["selected_speed"] = speed
+    # Set bowling status
     game["bowling_status"] = "waiting_for_number"
     
-    # Send bowling video
+    # Only ONE button - Bowling button
+    buttons = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🏏 Bowling", callback_data="bowling_btn", style=ButtonStyle.PRIMARY)]
+    ])
+    
+    # Send message
+    await message.reply_text(
+        f"🎯 **Hey {message.from_user.first_name}, now you're bowling!**\n\n"
+        f"⏰ You have 60 seconds!\n\n"
+        f"Click the button below to send your number!"
+    )
+    
+    # Send bowling video with button
     if BOWLING_VIDEO_URL:
-        await client.send_video(chat_id, BOWLING_VIDEO_URL, caption=f"🎯 **Speed {speed} selected!**\n\nNow send number on bot PM (1-6)\n⏰ You have 60 seconds!")
+        await client.send_video(
+            chat_id,
+            video=BOWLING_VIDEO_URL,
+            caption="👏 Click below to send number on bot PM!",
+            reply_markup=buttons
+        )
     else:
         await message.reply_text(
-            f"✅ **Speed {speed} selected!**\n\n"
-            f"Now send number on bot PM (1-6)\n"
-            f"⏰ You have 60 seconds!"
+            "👏 Click below to send number on bot PM!",
+            reply_markup=buttons
         )
     
     # Start 60 second timer
@@ -139,7 +118,7 @@ async def switch_to_next_bowler(client, chat_id):
     
     game["current_bowler"] = next_bowler["user_id"]
     game["current_bowler_index"] = next_index
-    game["bowling_status"] = "waiting_for_speed"
+    game["bowling_status"] = "waiting_for_number"
     
     await client.send_message(
         chat_id,
@@ -147,8 +126,8 @@ async def switch_to_next_bowler(client, chat_id):
     )
 
 
-async def bowling_speed_selected(callback_query, speed):
-    """When bowler selects speed from inline button"""
+async def bowling_button_callback(callback_query):
+    """Handle bowling button click - ask for number in DM"""
     user_id = callback_query.from_user.id
     chat_id = callback_query.message.chat.id
     
@@ -161,67 +140,51 @@ async def bowling_speed_selected(callback_query, speed):
         await callback_query.answer("You are not the current bowler!", show_alert=True)
         return
     
-    game["selected_speed"] = speed
-    game["bowling_status"] = "waiting_for_number"
+    if game.get("bowling_status") != "waiting_for_number":
+        await callback_query.answer("Already processed!", show_alert=True)
+        return
     
-    await callback_query.message.edit_text(
-        f"✅ **Speed {speed} selected!**\n\n"
-        f"Now send number on bot PM (1-6)\n"
-        f"⏰ You have 60 seconds!"
-    )
-    await callback_query.answer()
+    await callback_query.answer("Check your DM! Send number 1-6")
     
-    # Start timer
-    await start_bowling_timer(callback_query._client, chat_id, callback_query.from_user.first_name)
-
-
-async def show_bowling_speed_options(callback_query):
-    """Show bowling speed options in group"""
-    buttons = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("FAST", callback_data="bowl_speed_fast", style=ButtonStyle.PRIMARY),
-            InlineKeyboardButton("PHYSICAL", callback_data="bowl_speed_physical", style=ButtonStyle.PRIMARY),
-            InlineKeyboardButton("63", callback_data="bowl_speed_63", style=ButtonStyle.PRIMARY)
-        ]
-    ])
+    # Send DM to user
+    try:
+        await callback_query._client.send_message(
+            user_id,
+            "🎯 **Send your bowling number (1-6)!**\n\n"
+            "Reply with a number between 1-6\n"
+            "⏰ You have 60 seconds!"
+        )
+    except Exception as e:
+        await callback_query.message.reply_text("❌ Cannot send DM! Please start the bot in private first.")
     
-    await callback_query.message.edit_text(
-        "🎯 **Choose your bowling speed:**",
-        reply_markup=buttons
-    )
-    await callback_query.answer()
+    await callback_query.message.edit_text("✅ Check your DM! Send number 1-6")
 
 
-# ==================== BATTING COMMANDS ====================
+# ==================== GROUP BATTING HANDLER ====================
 
-async def batting_command(client, message: Message):
-    """/batting command - Play as batsman"""
+async def handle_group_batting_number(client, message: Message):
+    """Handle batting number sent directly in group (without command)"""
     user_id = message.from_user.id
     chat_id = message.chat.id
-    args = message.text.split()
+    number = int(message.text.strip())
+    
+    # Add thumb emoji reaction 👍
+    try:
+        await message.react(emoji="👍")
+    except:
+        pass
     
     if chat_id not in active_games:
         await message.reply_text("❌ No active game found! Use /startgame first.")
         return
     
     game = active_games[chat_id]
-    
-    if len(args) < 2:
-        ratings_text = " | ".join([f"{k} {v}" for k, v in BATTING_RATINGS.items()])
-        await message.reply_text(
-            f"🏏 **Now Batter can send number (1-6)!!**\n\n"
-            f"📊 **Ratings:** {ratings_text}\n\n"
-            f"Send number (1-6) to play the ball!\n"
-            f"Example: /batting 4"
-        )
+    if game.get("current_batter") != user_id:
+        await message.reply_text("❌ You are not the current batsman!")
         return
     
-    try:
-        number = int(args[1])
-        if number not in range(1, 7):
-            raise ValueError
-    except ValueError:
-        await message.reply_text("❌ Please send a number between 1-6!")
+    if game.get("batting_status") != "waiting_for_number":
+        await message.reply_text("❌ Already processed! Wait for your turn.")
         return
     
     # Get bowler's number
@@ -232,19 +195,28 @@ async def batting_command(client, message: Message):
         # WICKET!
         game["current_wickets"] = game.get("current_wickets", 0) + 1
         game["current_balls"] = game.get("current_balls", 0) + 1
+        game["batting_status"] = "completed"
+        
+        # Send WICKET video first
+        if WICKET_VIDEO_URL:
+            await client.send_video(chat_id, WICKET_VIDEO_URL, caption=f"🎯 **WICKET!** 🎯")
         
         # Send OUT video
         if OUT_VIDEO_URL:
-            await client.send_video(chat_id, OUT_VIDEO_URL, caption=f"🎯 **Number matches! {message.from_user.first_name} is out!**")
+            await client.send_video(chat_id, OUT_VIDEO_URL, caption=f"❌ **Number matches! {message.from_user.first_name} is out!**")
         else:
-            await message.reply_text(f"🎯 **Number matches! {message.from_user.first_name} is out!**")
+            await message.reply_text(f"❌ **Number matches! {message.from_user.first_name} is out!**")
         
         response_time = random.randint(30, 150)
         await message.reply_text(
             f"📊 Score: {game['current_runs']}/{game['current_wickets']}\n"
             f"⏱️ {response_time}ms\n\n"
-            f"❌ {message.from_user.first_name} dismissed!"
+            f"Bowler: {bowler_num} | Batter: {number}\n"
+            f"❌ **OUT!**"
         )
+        
+        # Clear stored number
+        bowler_number_store[chat_id] = 0
         
         # Check for match end
         if game['current_balls'] >= (game.get('total_overs', 2) * 6) or game['current_wickets'] >= 10:
@@ -255,17 +227,26 @@ async def batting_command(client, message: Message):
         await switch_to_next_batsman(client, chat_id)
         return
     
-    # NOT OUT - Add runs
+    # NOT OUT - Add runs (runs = batter's number)
     runs = number
     game["current_runs"] = game.get("current_runs", 0) + runs
     game["current_balls"] = game.get("current_balls", 0) + 1
     game["ball_sequence"].append(runs)
+    game["batting_status"] = "completed"
     
-    # Send runs video
+    # Send runs video based on runs
     if runs == 6 and SIX_VIDEO_URL:
         await client.send_video(chat_id, SIX_VIDEO_URL, caption=f"🎯 **SIX!** 🚀")
+    elif runs == 5:
+        await message.reply_text(f"🏏 **{runs} RUNS!**")
     elif runs == 4 and FOUR_VIDEO_URL:
         await client.send_video(chat_id, FOUR_VIDEO_URL, caption=f"🎯 **FOUR!** 💥")
+    elif runs == 3:
+        await message.reply_text(f"🏏 **{runs} RUNS!**")
+    elif runs == 2:
+        await message.reply_text(f"🏏 **{runs} RUNS!**")
+    elif runs == 1:
+        await message.reply_text(f"🏏 **{runs} RUN!**")
     elif BATTING_VIDEO_URL:
         await client.send_video(chat_id, BATTING_VIDEO_URL, caption=f"🏏 **{runs} RUN{'S' if runs > 1 else ''}!**")
     else:
@@ -276,10 +257,11 @@ async def batting_command(client, message: Message):
         f"📊 Score: {game['current_runs']}/{game['current_wickets']}\n"
         f"📈 Balls: {game['current_balls']}/{(game.get('total_overs', 2) * 6)}\n"
         f"⏱️ {response_time}ms\n\n"
-        f"Bowler: {bowler_num} | Batter: {number}"
+        f"Bowler: {bowler_num} | Batter: {number}\n"
+        f"🏏 **{runs} RUNS!**"
     )
     
-    # Clear stored numbers for next ball
+    # Clear stored number for next ball
     bowler_number_store[chat_id] = 0
     
     # Check for match end
@@ -287,13 +269,13 @@ async def batting_command(client, message: Message):
         await end_match(client, message, chat_id)
         return
     
-    # Next ball - ask bowler for number
+    # Next ball - ask bowler
     game["bowling_status"] = "waiting_for_number"
     game["batting_status"] = "waiting_for_number"
     
     await client.send_message(
         chat_id,
-        f"🔄 **Next ball! Bowler, send your number (1-6) on bot PM!**"
+        f"🔄 **Next ball! Bowler, click the BOWLING button!**"
     )
 
 
@@ -315,51 +297,12 @@ async def switch_to_next_batsman(client, chat_id):
         
         await client.send_message(
             chat_id,
-            f"🔄 **Hey {next_batter['first_name']}, now you're batting!**"
+            f"🔄 **Hey {next_batter['first_name']}, now you're batting!**\n\n"
+            f"Send your number (1-6) in group to play!"
         )
     else:
         # No more batsmen - match over
         await end_match(client, None, chat_id)
-
-
-async def show_batting_ratings(callback_query):
-    """Show batting ratings in group"""
-    ratings_text = " | ".join([f"{k} {v}" for k, v in BATTING_RATINGS.items()])
-    
-    await callback_query.message.edit_text(
-        f"🏏 **Now Batter can send number (1-6)!!**\n\n"
-        f"📊 **Ratings:** {ratings_text}"
-    )
-    await callback_query.answer()
-
-
-async def timing_selected(callback_query):
-    """TIMING button selected"""
-    await callback_query.message.edit_text(
-        "🎯 **TIMING SHOT SELECTED!**\n\n"
-        "Send number on bot PM (1-6)\n"
-        "Based on your timing, runs will be added!"
-    )
-    await callback_query.answer()
-
-
-async def direction_selected(callback_query):
-    """DIRECTION button selected"""
-    await callback_query.message.edit_text(
-        "🎯 **DIRECTION SHOT SELECTED!**\n\n"
-        "Send number on bot PM (1-6)\n"
-        "Based on your direction, runs will be added!"
-    )
-    await callback_query.answer()
-
-
-async def take_run_selected(callback_query):
-    """TAKE RUN button selected"""
-    await callback_query.message.edit_text(
-        "🏃 **TAKE RUN SELECTED!**\n\n"
-        "Send 1 or 2 on bot PM to take run!"
-    )
-    await callback_query.answer()
 
 
 # ==================== MATCH CONTROL ====================
@@ -457,113 +400,12 @@ async def handle_bowling_number(client, user_id, number_text):
                     await client.send_message(
                         chat_id,
                         f"🎯 **Bowler sent {number}**\n\n"
-                        f"Now waiting for batsman to play...\n"
-                        f"Batsman, send your number (1-6) on bot PM!"
+                        f"Now batsman, send your number (1-6) in group!"
                     )
                     await client.send_message(user_id, f"✅ You sent {number}! Waiting for batsman...")
                     return True
                 else:
                     await client.send_message(user_id, "❌ Please send number between 1-6!")
             except ValueError:
-                if number_text.upper() == "W":
-                    # Wicket on purpose
-                    game["bowling_status"] = "completed"
-                    bowler_number_store[chat_id] = 0
-                    await client.send_message(
-                        chat_id,
-                        f"🎯 **Bowler chose WICKET!**\n\n"
-                        f"Batsman, send your number (1-6) on bot PM!"
-                    )
-                    return True
-                else:
-                    await client.send_message(user_id, "❌ Please send number between 1-6 or W!")
-    return False
-
-
-async def handle_batting_number(client, user_id, number_text):
-    """Handle batting number received in DM"""
-    for chat_id, game in active_games.items():
-        if game.get("current_batter") == user_id and game.get("batting_status") == "waiting_for_number":
-            try:
-                number = int(number_text)
-                if 1 <= number <= 6:
-                    bowler_num = bowler_number_store.get(chat_id, 0)
-                    
-                    # Check if OUT
-                    if bowler_num == number and bowler_num != 0:
-                        # WICKET!
-                        game["current_wickets"] = game.get("current_wickets", 0) + 1
-                        game["current_balls"] = game.get("current_balls", 0) + 1
-                        
-                        # Send OUT video
-                        if OUT_VIDEO_URL:
-                            await client.send_video(chat_id, OUT_VIDEO_URL, caption=f"🎯 **Number matches! Player is out!**")
-                        else:
-                            await client.send_message(chat_id, f"🎯 **Number matches! {user_id} is out!**")
-                        
-                        response_time = random.randint(30, 150)
-                        await client.send_message(
-                            chat_id,
-                            f"📊 Score: {game['current_runs']}/{game['current_wickets']}\n"
-                            f"⏱️ {response_time}ms"
-                        )
-                        
-                        # Clear stored number
-                        bowler_number_store[chat_id] = 0
-                        
-                        # Check match end
-                        if game['current_balls'] >= (game.get('total_overs', 2) * 6) or game['current_wickets'] >= 10:
-                            await end_match(client, None, chat_id)
-                        else:
-                            # Switch to next batsman
-                            await switch_to_next_batsman(client, chat_id)
-                        
-                        await client.send_message(user_id, f"❌ You're OUT! Bowler's number was {bowler_num}")
-                        return True
-                    else:
-                        # NOT OUT - Add runs
-                        runs = number
-                        game["current_runs"] = game.get("current_runs", 0) + runs
-                        game["current_balls"] = game.get("current_balls", 0) + 1
-                        game["ball_sequence"].append(runs)
-                        
-                        # Send runs video
-                        if runs == 6 and SIX_VIDEO_URL:
-                            await client.send_video(chat_id, SIX_VIDEO_URL, caption=f"🎯 **SIX!** 🚀")
-                        elif runs == 4 and FOUR_VIDEO_URL:
-                            await client.send_video(chat_id, FOUR_VIDEO_URL, caption=f"🎯 **FOUR!** 💥")
-                        elif BATTING_VIDEO_URL:
-                            await client.send_video(chat_id, BATTING_VIDEO_URL, caption=f"🏏 **{runs} RUN{'S' if runs > 1 else ''}!**")
-                        else:
-                            await client.send_message(chat_id, f"🏏 **{runs} RUN{'S' if runs > 1 else ''}!**")
-                        
-                        response_time = random.randint(30, 150)
-                        await client.send_message(
-                            chat_id,
-                            f"📊 Score: {game['current_runs']}/{game['current_wickets']}\n"
-                            f"📈 Balls: {game['current_balls']}/{(game.get('total_overs', 2) * 6)}\n"
-                            f"⏱️ {response_time}ms\n\n"
-                            f"Bowler: {bowler_num} | Batter: {number}"
-                        )
-                        
-                        # Clear stored number for next ball
-                        bowler_number_store[chat_id] = 0
-                        
-                        # Check match end
-                        if game['current_balls'] >= (game.get('total_overs', 2) * 6) or game['current_wickets'] >= 10:
-                            await end_match(client, None, chat_id)
-                        else:
-                            # Next ball - roles switch
-                            game["bowling_status"] = "waiting_for_number"
-                            game["batting_status"] = "waiting_for_number"
-                            
-                            # Show next batter
-                            await client.send_message(chat_id, f"🔄 **Next ball! Bowler, send your number (1-6) on bot PM!**")
-                        
-                        await client.send_message(user_id, f"✅ You sent {number}! {runs} runs added!")
-                        return True
-                else:
-                    await client.send_message(user_id, "❌ Please send number between 1-6!")
-            except ValueError:
-                await client.send_message(user_id, "❌ Please send a valid number between 1-6!")
+                await client.send_message(user_id, "❌ Please send a number between 1-6!")
     return False
