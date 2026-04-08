@@ -59,7 +59,6 @@ async def joingame_command(client, message: Message):
 
 async def update_game_message(client, chat_id, game):
     """Update the game message with player count"""
-    # Handle both 'first_name' and 'name' keys for compatibility
     players_list = "\n".join([
         f"  {p['player_number']}. {p.get('first_name', p.get('name', 'Unknown'))}"
         for p in game["players"]
@@ -80,7 +79,6 @@ async def update_game_message(client, chat_id, game):
     )
     
     try:
-        # Check if message content is different before editing
         msg = await client.get_messages(chat_id, game["message_id"])
         if msg.text != new_text:
             await client.edit_message_text(
@@ -130,38 +128,5 @@ async def add_player_to_game(client, chat_id, user_id, name):
         "wickets": 0
     })
     
-    # Update game message
     await update_game_message(client, chat_id, game)
-    
     return True
-
-
-async def start_game_from_join(client, chat_id):
-    """Start the game when enough players join"""
-    if chat_id not in active_games:
-        return
-    
-    game = active_games[chat_id]
-    if game["status"] != "waiting":
-        return
-    
-    if len(game["players"]) < 2:
-        return
-    
-    game["status"] = "live"
-    
-    # Set current batter and bowler
-    game["current_batter_index"] = 0
-    game["current_bowler_index"] = 1 if len(game["players"]) > 1 else 0
-    game["current_batter"] = game["players"][game["current_batter_index"]]["user_id"]
-    game["current_bowler"] = game["players"][game["current_bowler_index"]]["user_id"]
-    
-    await client.send_message(
-        chat_id,
-        f"🏏 **MATCH STARTING!** 🏏\n\n"
-        f"👥 Total players: {len(game['players'])}\n\n"
-        f"🏏 **Batter:** {game['players'][game['current_batter_index']]['first_name']}\n"
-        f"🎯 **Bowler:** {game['players'][game['current_bowler_index']]['first_name']}\n\n"
-        f"Use `/bowling <speed>` to select bowling speed!\n"
-        f"Available speeds: FAST, PHYSICAL, 63, FANCODE, TANCODE, ATHANSTAN"
-    )
