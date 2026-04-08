@@ -71,6 +71,15 @@ async def callback_handler(client, callback_query: CallbackQuery):
     elif data == "auction_mode" or data == "auction":
         await auction_mode_menu(callback_query)
     
+    # ========== CREATE GAME CALLBACKS ==========
+    elif data == "create_solo":
+        from handlers.game import create_solo_game
+        await create_solo_game(callback_query)
+    
+    elif data == "create_team":
+        from handlers.game import create_team_game
+        await create_team_game(callback_query)
+    
     # ========== OVERS SELECTION ==========
     elif data.startswith("overs_"):
         overs = int(data.split("_")[1])
