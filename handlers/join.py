@@ -18,7 +18,7 @@ async def joingame_command(client, message: Message):
     # Check if active game exists in this chat
     if chat_id not in active_games:
         await message.reply_text(
-            f"😎 {user.first_name}, no game found! Start a new game with /start"
+            f"😎 {user.first_name}, no game found! Start a new game with /create_game"
         )
         return
     
@@ -42,7 +42,10 @@ async def joingame_command(client, message: Message):
         "user_id": user_id,
         "username": user.username,
         "first_name": user.first_name,
-        "player_number": player_number
+        "player_number": player_number,
+        "runs": 0,
+        "balls": 0,
+        "wickets": 0
     })
     
     await message.reply_text(
@@ -54,7 +57,7 @@ async def joingame_command(client, message: Message):
 
 
 async def create_game(client, message: Message, host_id: int):
-    """Create a new game (called from vote_game or host selection)"""
+    """Create a new game (called from game creation)"""
     chat_id = message.chat.id
     
     game = {
@@ -64,6 +67,7 @@ async def create_game(client, message: Message, host_id: int):
         "players": [],
         "status": "waiting",  # waiting, live, completed, expired
         "message_id": None,
+        "game_type": "solo",  # solo or team
         "total_overs": 2,
         "current_runs": 0,
         "current_wickets": 0,
@@ -79,7 +83,10 @@ async def create_game(client, message: Message, host_id: int):
             "username": host_user.username,
             "first_name": host_user.first_name,
             "player_number": 1,
-            "is_host": True
+            "is_host": True,
+            "runs": 0,
+            "balls": 0,
+            "wickets": 0
         })
     except:
         game["players"].append({
@@ -87,7 +94,10 @@ async def create_game(client, message: Message, host_id: int):
             "username": None,
             "first_name": "Host",
             "player_number": 1,
-            "is_host": True
+            "is_host": True,
+            "runs": 0,
+            "balls": 0,
+            "wickets": 0
         })
     
     active_games[chat_id] = game
@@ -95,8 +105,9 @@ async def create_game(client, message: Message, host_id: int):
     # Send game creation message
     msg = await message.reply_text(
         f"🎉 **Game created!** Join the game using `/joingame` (2 minutes to join) 🏏️\n\n"
-        f"**Host:** {game['players'][0]['first_name']}\n"
-        f"**Players joined:** 1"
+        f"👤 **Host:** {game['players'][0]['first_name']}\n"
+        f"👥 **Players joined:** 1\n\n"
+        f"⏰ Time remaining: 2:00 minutes"
     )
     game["message_id"] = msg.id
     
@@ -128,9 +139,9 @@ async def auto_expire_game(client, chat_id):
             game["status"] = "expired"
             await client.send_message(
                 chat_id,
-                "⚠️ **Voting session expired due to inactivity.**\n\n"
-                f"Players joined: {len(game['players'])}\n\n"
-                "Start a new game with /start"
+                "⚠️ **Game session expired due to inactivity.**\n\n"
+                f"👥 Players joined: {len(game['players'])}\n\n"
+                "Start a new game with /create_game"
             )
             del active_games[chat_id]
 
@@ -173,13 +184,20 @@ async def start_game_from_join(client, chat_id):
     
     game["status"] = "live"
     
+    # Set current batter and bowler
+    game["current_batter_index"] = 0
+    game["current_bowler_index"] = 1 if len(game["players"]) > 1 else 0
+    game["current_batter"] = game["players"][game["current_batter_index"]]["user_id"]
+    game["current_bowler"] = game["players"][game["current_bowler_index"]]["user_id"]
+    
     await client.send_message(
         chat_id,
         f"🏏 **MATCH STARTING!** 🏏\n\n"
-        f"Total players: {len(game['players'])}\n\n"
-        f"🎲 **Toss time!**\n\n"
-        f"Use /bowling <speed> to select bowler\n"
-        f"Use /batting <number> to play!"
+        f"👥 Total players: {len(game['players'])}\n\n"
+        f"🏏 **Batter:** {game['players'][game['current_batter_index']]['first_name']}\n"
+        f"🎯 **Bowler:** {game['players'][game['current_bowler_index']]['first_name']}\n\n"
+        f"Use `/bowling <speed>` to select bowling speed!\n"
+        f"Available speeds: FAST, PHYSICAL, 63, FANCODE, TANCODE, ATHANSTAN"
     )
 
 
@@ -194,5 +212,31 @@ async def delete_active_game(chat_id):
     """Delete active game"""
     if chat_id in active_games:
         del active_games[chat_id]
-    if chat_id in join_timers:
-        join_timers[chat_id].cancel()
+        return True
+    return False
+
+
+async def add_player_to_game(chat_id, user_id, name):
+    """Add player to existing game"""
+    if chat_id not in active_games:
+        return False
+    
+    game = active_games[chat_id]
+    if game["status"] != "waiting":
+        return False
+    
+    if user_id in [p["user_id"] for p in game["players"]]:
+        return False
+    
+    player_number = len(game["players"]) + 1
+    game["players"].append({
+        "user_id": user_id,
+        "username": None,
+        "first_name": name,
+        "player_number": player_number,
+        "runs": 0,
+        "balls": 0,
+        "wickets": 0
+    })
+    
+    return True
