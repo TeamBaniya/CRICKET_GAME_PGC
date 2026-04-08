@@ -1,7 +1,7 @@
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ButtonStyle
 from database import db
-from config import IMAGE_URL, WELCOME_CAPTION, UPDATES_LINK, SUPPORT_LINK, PLAYZONE_LINK
+from config import IMAGE_URL, WELCOME_CAPTION, UPDATES_LINK, SUPPORT_LINK, PLAYZONE_LINK, LIVE_SCORE_LINK
 
 async def start_command(client, message: Message):
     user = message.from_user
@@ -15,11 +15,11 @@ async def start_command(client, message: Message):
         "state": "MAIN_MENU"
     })
 
-    # 🔘 Buttons with Actions and Styles
+    # 🔘 Buttons - Sab direct links (ADD TO GROUP chhodkar)
     buttons = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🏏 PLAY ZONE", callback_data="play_zone", style=ButtonStyle.PRIMARY),
-            InlineKeyboardButton("📊 LIVE SCORE", callback_data="live_score", style=ButtonStyle.DANGER)
+            InlineKeyboardButton("🏏 PLAY ZONE", url=PLAYZONE_LINK, style=ButtonStyle.PRIMARY),
+            InlineKeyboardButton("📊 LIVE SCORE", url=LIVE_SCORE_LINK, style=ButtonStyle.DANGER)
         ],
         [
             InlineKeyboardButton("📢 UPDATES", url=UPDATES_LINK, style=ButtonStyle.SUCCESS),
@@ -40,9 +40,7 @@ async def start_command(client, message: Message):
 
 
 async def game_instructions_menu(callback_query):
-    """Game instructions menu - jab PLAY ZONE dabaye"""
-    from config import BUTTONS, CB
-    
+    """Game instructions menu - jab HELP ke andar se aayega"""
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🎯 Solo Play", callback_data="solo_play", style=ButtonStyle.PRIMARY),
@@ -74,6 +72,9 @@ async def host_callback(callback_query):
         [
             InlineKeyboardButton("🗳️ VOTE GAME", callback_data="vote_game", style=ButtonStyle.PRIMARY),
             InlineKeyboardButton("🌳 SOLO TREE COMMUNITY", callback_data="solo_tree", style=ButtonStyle.DEFAULT)
+        ],
+        [
+            InlineKeyboardButton("◀️ BACK", callback_data="back_to_main", style=ButtonStyle.DEFAULT)
         ]
     ])
     
@@ -90,3 +91,42 @@ async def solo_tree_callback(callback_query):
     """Solo tree community callback"""
     from handlers.solo import solo_tree_community
     await solo_tree_community(callback_query)
+
+
+async def help_menu_callback(callback_query):
+    """Help menu button callback"""
+    from handlers.help import help_command
+    
+    class FakeMessage:
+        def __init__(self, chat, from_user, edit_text):
+            self.chat = chat
+            self.from_user = from_user
+            self.reply_text = edit_text
+    
+    fake_msg = FakeMessage(
+        callback_query.message.chat,
+        callback_query.from_user,
+        callback_query.message.edit_text
+    )
+    await help_command(callback_query._client, fake_msg)
+    await callback_query.answer()
+
+
+async def add_to_group_callback(callback_query):
+    """Add to group button callback"""
+    bot_username = (await callback_query._client.get_me()).username
+    await callback_query.message.edit_text(
+        "➕ **ADD ME TO YOUR GROUP**\n\n"
+        "1. Add me to your group\n"
+        f"   → [Click here to add](https://t.me/{bot_username}?startgroup=true)\n\n"
+        "2. Make me admin (important!)\n\n"
+        "3. Type /start in group\n\n"
+        "4. Start playing with friends! 🏏"
+    )
+    await callback_query.answer()
+
+
+async def back_to_main_callback(callback_query):
+    """Back to main menu"""
+    await start_command(callback_query._client, callback_query.message)
+    await callback_query.answer()
