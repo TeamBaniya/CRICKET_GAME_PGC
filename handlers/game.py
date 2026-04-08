@@ -3,7 +3,7 @@ from pyrogram.enums import ButtonStyle
 from datetime import datetime, timedelta
 import asyncio
 
-# Store active games
+# Store active games (shared with join.py)
 active_games = {}
 
 async def create_game_command(client, message: Message):
@@ -35,9 +35,17 @@ async def create_solo_game(callback_query):
         "type": "solo",
         "created_at": datetime.now(),
         "expires_at": datetime.now() + timedelta(minutes=2),
-        "players": [{"user_id": user.id, "name": user.first_name, "player_number": 1}],
+        "players": [{
+            "user_id": user.id, 
+            "name": user.first_name, 
+            "player_number": 1,
+            "runs": 0,
+            "balls": 0,
+            "wickets": 0
+        }],
         "status": "waiting",
-        "host_id": user.id
+        "host_id": user.id,
+        "message_id": callback_query.message.id
     }
     
     await callback_query.message.edit_text(
@@ -61,9 +69,18 @@ async def create_team_game(callback_query):
         "type": "team",
         "created_at": datetime.now(),
         "expires_at": datetime.now() + timedelta(minutes=2),
-        "players": [{"user_id": user.id, "name": user.first_name, "player_number": 1, "team": None}],
+        "players": [{
+            "user_id": user.id, 
+            "name": user.first_name, 
+            "player_number": 1, 
+            "team": None,
+            "runs": 0,
+            "balls": 0,
+            "wickets": 0
+        }],
         "status": "waiting",
-        "host_id": user.id
+        "host_id": user.id,
+        "message_id": callback_query.message.id
     }
     
     await callback_query.message.edit_text(
@@ -89,3 +106,30 @@ async def delete_active_game(chat_id):
         del active_games[chat_id]
         return True
     return False
+
+
+async def update_game_message(client, chat_id, game):
+    """Update the game message with player count"""
+    players_list = "\n".join([
+        f"  {p['player_number']}. {p['name']}"
+        for p in game["players"]
+    ])
+    
+    time_left = (game["expires_at"] - datetime.now()).seconds
+    minutes = time_left // 60
+    seconds = time_left % 60
+    
+    game_type = "Solo" if game["type"] == "solo" else "Team"
+    
+    try:
+        await client.edit_message_text(
+            chat_id,
+            game["message_id"],
+            f"🎉 **{game_type} Game Created!** 🎉\n\n"
+            f"Join the game using `/joingame` ({minutes}:{seconds:02d} minutes left)\n\n"
+            f"**Players joined:**\n{players_list}\n\n"
+            f"**Total players:** {len(game['players'])}\n\n"
+            f"Type `/startgame` when ready!"
+        )
+    except:
+        pass
