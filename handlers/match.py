@@ -72,18 +72,29 @@ async def send_bowling_screen(client, chat_id, bowler_name):
         [InlineKeyboardButton("🏏 Bowling", callback_data="bowling_btn", style=ButtonStyle.PRIMARY)]
     ])
     
-    # Send bowling video with only bowling button
+    # Send message first
+    await client.send_message(
+        chat_id,
+        f"🎯 **Hey {bowler_name}, now you're bowling!**\n\n"
+        f"⏰ You have 60 seconds!\n\n"
+        f"Click the button below to send your number!"
+    )
+    
+    # Wait 2 seconds
+    await asyncio.sleep(2)
+    
+    # Send bowling video with button
     if BOWLING_VIDEO_URL:
         await client.send_video(
             chat_id,
             video=BOWLING_VIDEO_URL,
-            caption=f"🎯 **Hey {bowler_name}, now you're bowling!**\n\nClick the button below to send your number!",
+            caption="👏 Click below to send number on bot PM!",
             reply_markup=buttons
         )
     else:
         await client.send_message(
             chat_id,
-            f"🎯 **Hey {bowler_name}, now you're bowling!**\n\nClick the button below to send your number!",
+            "👏 Click below to send number on bot PM!",
             reply_markup=buttons
         )
 
