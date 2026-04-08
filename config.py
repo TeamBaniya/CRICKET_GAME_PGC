@@ -125,38 +125,55 @@ SOLO_MODE_MESSAGE = """
 """
 
 TEAM_MODE_MESSAGE = """
-👥 **TEAM MODE COMMANDS**
+🌟 𝐌ᴇᴍʙᴇʀs 𝐀ᴅᴅɪɴɢ:
 
-**ADD MEMBERS:**
-/add_A - add members to team A
-/add_B - add members to team B
+/add_A - add members to team A  
+/add_B - add members to team B  
 
-**REMOVE MEMBERS:**
-/remove_A - remove members from team A
-/remove_B - remove members from team B
+Eg: /add_A 1  or /add_A @username  
+(Use the player number of your team)
 
-**GAME PLAY:**
-/startgame - to start the game
-/bowling - choose the bowling person
-/batting - choose the batting person
-/swap - change playing position
-/end_match - end the current game
+🌟 𝐌ᴇᴍʙᴇʀs 𝐑ᴇᴍᴏᴠɪɴɢ:
+
+/remove_A - remove members from team A  
+/remove_B - remove members from team B  
+
+Eg: /remove_A 2  
+(Use the player number of your team)
+
+🌟 𝐆ᴀᴍᴇ 𝐏ʟᴀʏ 𝐂ᴏᴍᴍᴀɴᴅs:
+
+/startgame - to start the game  
+
+/bowling - choose the bowling person of team A or B  
+Eg: /bowling 3  
+(Use the team A or B player number for bowling)
+
+/batting - choose the batting person of team A or B  
+Eg: /batting 4  
+(Use the team A or B player number for batting)
+
+/swap - to change the playing position of the current team  
+
+/end_match - to end the current game  
+
+/Feedback - give your feedback about the game
 """
 
 AUCTION_MESSAGE = """
 💰 **AUCTION COMMANDS**
 
-/add_cap - add auction captain
-/rm_cap - remove auction captain
-/cap_change_auction - change auction captain
-/auction_id - send auction player ID
-/start_auction - start auction
-/pause_auction - pause auction
-/resume_auction - resume auction
-/auction_host_change - change auction host
-/xp - put value on player
-/unhold - unsold player list
-/rm_auction_id - remove sold player
+/add_cap - add auction captain ➕
+/rm_cap - remove auction captain ➖
+/cap_change_auction - change the auction captain
+/auction_id - send auction player id 🆔
+/start_auction - start auction 🏁
+/pause_auction - pause the auction ⏸️
+/resume_auction - resume the auction ▶️
+/auction_host_change - change the auction host 👑
+/xp - auction player put value 💰
+/unsold - auction player unsold list 📋
+/rm_auction_id - remove auction sold player ❌
 """
 
 HOST_MESSAGE = """
