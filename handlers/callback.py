@@ -110,7 +110,7 @@ async def callback_handler(client, callback_query: CallbackQuery):
         from config import TEAM_START_VIDEO_URL
         await callback_query.message.reply_video(
             video=TEAM_START_VIDEO_URL,
-            caption="🎮 **START**\n\nUse /add_A and /add_B to add players to teams."
+            caption="Start a new match or join an existing one with your friends. Just type /start in groups."
         )
     
     elif data == "team_add":
