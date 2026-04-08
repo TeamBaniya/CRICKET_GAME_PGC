@@ -8,6 +8,9 @@ load_dotenv()
 MONGO_URI = "mongodb+srv://sparshshivare2606:sparshs2607@cluster0.cvditmt.mongodb.net/?appName=Cluster0"
 DB_NAME = "cricket_bot"
 
+# ========== OWNER / DEVELOPER LINK ==========
+OWNER_LINK = "https://t.me/oye_sparsh"  # Apna Telegram profile link
+
 # ========== BOT TOKEN ==========
 BOT_TOKEN = "8710613096:AAHOqrjfrKU-RNcVGKgHprD6ZW3nUhI-y4U"
 
