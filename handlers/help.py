@@ -27,6 +27,53 @@ GAME_INSTRUCTIONS_MESSAGE = """
 Choose your mode to play:
 """
 
+SOLO_MODE_MESSAGE = """
+🏏 **Solo Mode:**
+
+• /solo_start: Begin a solo match. Use the Solo button.
+  - Next: Select your bowling mode by clicking Choose Random or Group Volunteer.
+
+• /joingame: Join an ongoing solo match.
+
+• /end_match: End the current game.
+
+• /feedback: Share your feedback about the game and help us improve!
+
+Ready to play? Let's see your skills on the field! 🌟
+"""
+
+TEAM_MODE_MESSAGE = """
+👥 **Team Mode:**
+
+• /startgame: Start a new team match
+
+• /add_A @username - Add member to Team A
+• /add_B @username - Add member to Team B
+
+• /join_teamA - Join Team A
+• /join_teamB - Join Team B
+
+• /members_list - View team members
+
+• /end_match - End the current game
+"""
+
+AUCTION_MESSAGE = """
+💰 **Auction Mode:**
+
+• /add_cap - Add auction captain
+• /rm_cap - Remove auction captain
+• /cap_change_auction - Change auction captain
+• /auction_id - Send auction player ID
+• /start_auction - Start auction
+• /pause_auction - Pause auction
+• /resume_auction - Resume auction
+• /auction_host_change - Change auction host
+• /xp - Put value on player
+• /unhold - Unsold player list
+• /rm_auction_id - Remove sold player
+"""
+
 async def help_command(client, message: Message):
     """Send help message with buttons"""
     buttons = InlineKeyboardMarkup([
@@ -69,7 +116,7 @@ async def game_instructions_menu(callback_query):
 
 
 async def solo_mode_menu(callback_query):
-    """Solo mode specific menu"""
+    """Solo mode specific menu - as per screenshot"""
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🎮 Start Solo Match", callback_data="solo_start", style=ButtonStyle.SUCCESS),
@@ -81,12 +128,7 @@ async def solo_mode_menu(callback_query):
         ]
     ])
     await callback_query.message.edit_text(
-        "🎯 **SOLO MODE**\n\n"
-        "Play cricket matches against the bot!\n\n"
-        "• /solo_start - Start a new match\n"
-        "• /solo_stats - View your statistics\n"
-        "• /solo_leaderboard - Top players list\n\n"
-        "Send numbers 1-6 to play your shots!",
+        SOLO_MODE_MESSAGE,
         reply_markup=buttons
     )
     await callback_query.answer()
@@ -96,23 +138,15 @@ async def team_mode_menu(callback_query):
     """Team mode specific menu"""
     buttons = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("👥 Create Team", callback_data="create_team", style=ButtonStyle.PRIMARY),
-            InlineKeyboardButton("🏏 Start Match", callback_data="start_match", style=ButtonStyle.SUCCESS)
+            InlineKeyboardButton("🏏 Start Match", callback_data="start_match", style=ButtonStyle.SUCCESS),
+            InlineKeyboardButton("📋 Rules", callback_data="team_rules", style=ButtonStyle.DEFAULT)
         ],
         [
-            InlineKeyboardButton("📋 Rules", callback_data="team_rules", style=ButtonStyle.DEFAULT),
             InlineKeyboardButton("◀️ BACK", callback_data="back_to_instructions", style=ButtonStyle.DEFAULT)
         ]
     ])
     await callback_query.message.edit_text(
-        "👥 **TEAM MODE**\n\n"
-        "Play with friends!\n\n"
-        "**Commands:**\n"
-        "• /add_A @username - Add to Team A\n"
-        "• /add_B @username - Add to Team B\n"
-        "• /startgame - Start the match\n"
-        "• /members_list - View team members\n\n"
-        "Team with most runs wins!",
+        TEAM_MODE_MESSAGE,
         reply_markup=buttons
     )
     await callback_query.answer()
@@ -130,15 +164,7 @@ async def auction_menu(callback_query):
         ]
     ])
     await callback_query.message.edit_text(
-        "💰 **AUCTION MODE**\n\n"
-        "Buy and sell players!\n\n"
-        "**Commands:**\n"
-        "• /add_cap - Add auction captain\n"
-        "• /start_auction - Start auction\n"
-        "• /auction_id <id> - Put player for auction\n"
-        "• /xp <amount> - Place your bid\n"
-        "• /unhold - View unsold players\n\n"
-        "Get your dream team!",
+        AUCTION_MESSAGE,
         reply_markup=buttons
     )
     await callback_query.answer()
