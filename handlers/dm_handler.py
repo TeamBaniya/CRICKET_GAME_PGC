@@ -82,12 +82,7 @@ async def handle_dm_message(client, message: Message):
                 # Bowler chose Wicket
                 game["bowling_status"] = "completed"
                 bowler_number_store[chat_id] = 0
-                await client.send_message(
-                    chat_id,
-                    f"🎯 **Bowler chose WICKET!**\n\n"
-                    f"Now waiting for batsman to play...\n"
-                    f"Batsman, send your number (1-6) on bot PM!"
-                )
+                # ✅ NO group message - only DM confirmation
                 await message.reply_text("✅ You chose WICKET! Waiting for batsman...")
                 return
                 
@@ -96,12 +91,7 @@ async def handle_dm_message(client, message: Message):
                 number = int(text)
                 game["bowling_status"] = "completed"
                 bowler_number_store[chat_id] = number
-                await client.send_message(
-                    chat_id,
-                    f"🎯 **Bowler sent {number}**\n\n"
-                    f"Now waiting for batsman to play...\n"
-                    f"Batsman, send your number (1-6) on bot PM!"
-                )
+                # ✅ NO group message - only DM confirmation
                 await message.reply_text(f"✅ You sent {number}! Waiting for batsman...")
                 return
             else:
