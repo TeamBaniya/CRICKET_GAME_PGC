@@ -5,8 +5,6 @@ from handlers.match import startgame_command
 from handlers.gameplay import bowling_command, batting_command, swap_command, end_match_command
 from handlers.auction import add_cap_command, rm_cap_command, cap_change_command, auction_id_command, start_auction_command, pause_auction_command, resume_auction_command, auction_host_change_command, xp_command, unhold_command, rm_auction_id_command
 from handlers.join import joingame_command
-from handlers.vote import vote_game_command
-from handlers.solo import solo_play_command, solo_start_command, solo_stats_command, solo_leaderboard_command, solo_tree_community
 from handlers.dm_handler import handle_dm_message
 
 async def register_handlers(client, message):
@@ -42,8 +40,6 @@ async def register_handlers(client, message):
         await end_match_command(client, message)
     elif text == "/joingame":
         await joingame_command(client, message)
-    elif text == "/vote_game":
-        await vote_game_command(client, message)
     
     # Team Commands
     elif text.startswith("/add_a"):
@@ -56,25 +52,6 @@ async def register_handlers(client, message):
         await join_teamb_command(client, message)
     elif text == "/members_list":
         await members_list_command(client, message)
-    
-    # Solo Mode Commands
-    elif text == "/solo" or text == "/solo_play":
-        await solo_play_command(client, message)
-    elif text == "/solo_start":
-        await solo_start_command(client, message)
-    elif text == "/solo_stats":
-        await solo_stats_command(client, message)
-    elif text == "/solo_leaderboard":
-        await solo_leaderboard_command(client, message)
-    elif text == "/solo_tree":
-        class FakeCallback:
-            def __init__(self, message):
-                self.message = message
-                self.from_user = message.from_user
-            async def answer(self):
-                pass
-        fake_cb = FakeCallback(message)
-        await solo_tree_community(fake_cb)
     
     # Auction Commands
     elif text == "/add_cap":
