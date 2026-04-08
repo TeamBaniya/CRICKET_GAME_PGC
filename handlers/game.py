@@ -1,7 +1,8 @@
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from pyrogram.enums import ButtonStyle
 from datetime import datetime, timedelta
 import asyncio
+from config import SOLO_GAME_START_IMAGE
 
 # Store active games (shared with join.py)
 active_games = {}
@@ -39,6 +40,7 @@ async def create_solo_game(callback_query):
             "user_id": user.id, 
             "name": user.first_name, 
             "player_number": 1,
+            "username": user.username,
             "runs": 0,
             "balls": 0,
             "wickets": 0
@@ -56,6 +58,66 @@ async def create_solo_game(callback_query):
         f"⏰ You have 2 minutes to join!\n\n"
         f"Type `/startgame` when ready!"
     )
+    
+    # Start auto-start timer for solo game
+    asyncio.create_task(auto_start_solo_game(callback_query._client, chat_id))
+    
+    await callback_query.answer()
+
+
+async def auto_start_solo_game(client, chat_id):
+    """Auto start solo game after 2 minutes"""
+    await asyncio.sleep(120)  # 2 minutes
+    
+    if chat_id in active_games:
+        game = active_games[chat_id]
+        if game["status"] == "waiting":
+            game["status"] = "starting"
+            await send_solo_game_start_image(client, chat_id, game)
+
+
+async def send_solo_game_start_image(client, chat_id, game):
+    """Send image with players list before game starts"""
+    players_list = ""
+    for i, player in enumerate(game["players"], 1):
+        username = f"@{player['username']}" if player.get('username') else player['name']
+        players_list += f"{i}. {username}\n"
+    
+    caption = f"""🏏 **CRICKET GAME PLAYERS**
+🌳 **SOLO TREE COMMUNITY**
+
+**Unknown Host**
+**Solo Players**
+
+{players_list}"""
+    
+    buttons = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎮 Start Game", callback_data="start_solo_match", style=ButtonStyle.SUCCESS)]
+    ])
+    
+    await client.send_photo(
+        chat_id,
+        photo=SOLO_GAME_START_IMAGE,
+        caption=caption,
+        reply_markup=buttons
+    )
+
+
+async def start_solo_match_callback(callback_query):
+    """Start solo match after image is shown"""
+    chat_id = callback_query.message.chat.id
+    
+    if chat_id in active_games:
+        game = active_games[chat_id]
+        game["status"] = "live"
+        
+        await callback_query.message.edit_text(
+            "🏏 **SOLO MATCH STARTING!** 🏏\n\n"
+            f"👥 Total players: {len(game['players'])}\n\n"
+            "Each player will bat one by one!\n\n"
+            f"👉 **{game['players'][0]['name']}**, you're batting first!\n\n"
+            "Send numbers 1-6 on bot PM to play!"
+        )
     await callback_query.answer()
 
 
@@ -73,6 +135,7 @@ async def create_team_game(callback_query):
             "user_id": user.id, 
             "name": user.first_name, 
             "player_number": 1, 
+            "username": user.username,
             "team": None,
             "runs": 0,
             "balls": 0,
