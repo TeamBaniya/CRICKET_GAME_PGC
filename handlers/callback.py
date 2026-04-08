@@ -5,7 +5,7 @@ from handlers.help import game_instructions_menu
 from handlers.team import team_mode_menu
 from handlers.auction import auction_mode_menu
 from handlers.match import overs_selected
-from handlers.start import start_command, host_callback
+from handlers.start import start_command, host_callback, add_to_group_callback
 from handlers.vote import vote_game_callback
 from handlers.solo import solo_tree_community, solo_play_callback
 from config import BOWLING_SPEEDS_BUTTONS, UPDATES_LINK, SUPPORT_LINK
@@ -52,13 +52,7 @@ async def callback_handler(client, callback_query: CallbackQuery):
         )
     
     elif data == "add_to_group":
-        await callback_query.message.edit_text(
-            "➕ **ADD ME TO YOUR GROUP**\n\n"
-            "1. Add @cricket_bot to your group\n"
-            "2. Make me admin\n"
-            "3. Type /start in group\n\n"
-            "🔗 [Click here to add bot](https://t.me/cricket_bot?startgroup=true)"
-        )
+        await add_to_group_callback(callback_query)
     
     elif data == "developer":
         await callback_query.message.edit_text(
@@ -174,6 +168,32 @@ async def callback_handler(client, callback_query: CallbackQuery):
     
     elif data == "back_to_host":
         await host_callback(callback_query)
+    
+    elif data == "back_to_main":
+        class FakeMessage:
+            def __init__(self, chat, from_user, edit_text):
+                self.chat = chat
+                self.from_user = from_user
+                self.reply_text = edit_text
+        fake_msg = FakeMessage(
+            callback_query.message.chat,
+            callback_query.from_user,
+            callback_query.message.edit_text
+        )
+        await start_command(client, fake_msg)
+    
+    # ========== SOLO MULTI CALLBACKS ==========
+    elif data == "solo_multi_start":
+        from handlers.solo import solo_multi_start_callback
+        await solo_multi_start_callback(callback_query)
+    
+    elif data == "solo_multi_cancel":
+        from handlers.solo import solo_multi_cancel_callback
+        await solo_multi_cancel_callback(callback_query)
+    
+    elif data == "solo_multi_new":
+        from handlers.solo import solo_multi_new_callback
+        await solo_multi_new_callback(callback_query)
     
     # ========== DEFAULT ==========
     else:
