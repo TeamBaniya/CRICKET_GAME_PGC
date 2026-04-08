@@ -90,6 +90,11 @@ async def callback_handler(client, callback_query: CallbackQuery):
     elif data == "bowling_btn":
         await bowling_button_callback(callback_query)
     
+    # ========== BATTING BUTTON CALLBACK (for future) ==========
+    elif data == "batting_btn":
+        # Similar to bowling, will be implemented if needed
+        await callback_query.answer("Batting button clicked! Send number in group!")
+    
     # ========== OVERS SELECTION ==========
     elif data.startswith("overs_"):
         overs = int(data.split("_")[1])
