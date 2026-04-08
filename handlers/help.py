@@ -1,7 +1,7 @@
 # TODO: Add your code here
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from pyrogram.enums import ButtonStyle
-from config import UPDATES_LINK, SUPPORT_LINK, OWNER_LINK
+from config import UPDATES_LINK, SUPPORT_LINK, OWNER_LINK, GAME_INSTRUCTIONS_IMAGE_URL
 
 HELP_MESSAGE = """
 Hello! 🤗 Need some help with Cricket Master Bot? Here are some tips to get you started:
@@ -21,10 +21,10 @@ Hello! 🤗 Need some help with Cricket Master Bot? Here are some tips to get yo
 Enjoy your time with Cricket Master Bot! 🏏🚀
 """
 
-GAME_INSTRUCTIONS_MESSAGE = """
-🎮 **GAME INSTRUCTIONS**
+GAME_INSTRUCTIONS_CAPTION = """
+🎮 **𝐖ᴇʟᴄᴏᴍᴇ 𝐭ᴏ 𝐂ʀɪᴄᴋᴇᴛ 𝐌ᴀsᴛᴇʀ 𝐁ᴏᴛ!**
 
-Choose your mode to play:
+Cricket Game Bot provide Solo play and Team play option available.
 """
 
 SOLO_MODE_MESSAGE = """
@@ -93,7 +93,7 @@ async def help_command(client, message: Message):
 
 
 async def game_instructions_menu(callback_query):
-    """Game instructions menu with all game modes"""
+    """Game instructions menu with image - when Game Instructions clicked"""
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🎯 Solo Play", callback_data="solo_play", style=ButtonStyle.PRIMARY),
@@ -108,15 +108,18 @@ async def game_instructions_menu(callback_query):
             InlineKeyboardButton("🏠 Home", callback_data="home", style=ButtonStyle.DEFAULT)
         ]
     ])
-    await callback_query.message.edit_text(
-        GAME_INSTRUCTIONS_MESSAGE,
+    
+    await callback_query.message.delete()
+    await callback_query.message.reply_photo(
+        photo=GAME_INSTRUCTIONS_IMAGE_URL,
+        caption=GAME_INSTRUCTIONS_CAPTION,
         reply_markup=buttons
     )
     await callback_query.answer()
 
 
 async def solo_mode_menu(callback_query):
-    """Solo mode specific menu - as per screenshot"""
+    """Solo mode menu - without image, only text commands"""
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🎮 Start Solo Match", callback_data="solo_start", style=ButtonStyle.SUCCESS),
@@ -124,7 +127,7 @@ async def solo_mode_menu(callback_query):
         ],
         [
             InlineKeyboardButton("🏆 Leaderboard", callback_data="solo_leaderboard", style=ButtonStyle.PRIMARY),
-            InlineKeyboardButton("◀️ BACK", callback_data="back_to_instructions", style=ButtonStyle.DEFAULT)
+            InlineKeyboardButton("◀️ BACK", callback_data="back_to_game_instructions", style=ButtonStyle.DEFAULT)
         ]
     ])
     await callback_query.message.edit_text(
@@ -142,7 +145,7 @@ async def team_mode_menu(callback_query):
             InlineKeyboardButton("📋 Rules", callback_data="team_rules", style=ButtonStyle.DEFAULT)
         ],
         [
-            InlineKeyboardButton("◀️ BACK", callback_data="back_to_instructions", style=ButtonStyle.DEFAULT)
+            InlineKeyboardButton("◀️ BACK", callback_data="back_to_game_instructions", style=ButtonStyle.DEFAULT)
         ]
     ])
     await callback_query.message.edit_text(
@@ -160,11 +163,38 @@ async def auction_menu(callback_query):
             InlineKeyboardButton("📋 Rules", callback_data="auction_rules", style=ButtonStyle.DEFAULT)
         ],
         [
-            InlineKeyboardButton("◀️ BACK", callback_data="back_to_instructions", style=ButtonStyle.DEFAULT)
+            InlineKeyboardButton("◀️ BACK", callback_data="back_to_game_instructions", style=ButtonStyle.DEFAULT)
         ]
     ])
     await callback_query.message.edit_text(
         AUCTION_MESSAGE,
+        reply_markup=buttons
+    )
+    await callback_query.answer()
+
+
+async def back_to_game_instructions(callback_query):
+    """Back to game instructions menu with image"""
+    buttons = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🎯 Solo Play", callback_data="solo_play", style=ButtonStyle.PRIMARY),
+            InlineKeyboardButton("👥 Team Play", callback_data="team_play", style=ButtonStyle.PRIMARY)
+        ],
+        [
+            InlineKeyboardButton("💰 Auction", callback_data="auction", style=ButtonStyle.DANGER),
+            InlineKeyboardButton("🗳️ VOTE GAME", callback_data="vote_game", style=ButtonStyle.PRIMARY)
+        ],
+        [
+            InlineKeyboardButton("🌳 SOLO TREE COMMUNITY", callback_data="solo_tree", style=ButtonStyle.DEFAULT),
+            InlineKeyboardButton("🏠 Home", callback_data="home", style=ButtonStyle.DEFAULT)
+        ]
+    ])
+    
+    await callback_query.message.edit_media(
+        media=InputMediaPhoto(
+            media=GAME_INSTRUCTIONS_IMAGE_URL,
+            caption=GAME_INSTRUCTIONS_CAPTION
+        ),
         reply_markup=buttons
     )
     await callback_query.answer()
