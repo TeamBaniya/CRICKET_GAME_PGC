@@ -5,7 +5,6 @@ from handlers.help import game_instructions_menu, solo_mode_menu, back_to_game_i
 from handlers.auction import auction_mode_menu
 from handlers.match import overs_selected
 from handlers.start import start_command, add_to_group_callback
-from handlers.solo import solo_play_callback
 from config import BOWLING_SPEEDS_BUTTONS, UPDATES_LINK, SUPPORT_LINK
 
 async def callback_handler(client, callback_query: CallbackQuery):
@@ -30,7 +29,6 @@ async def callback_handler(client, callback_query: CallbackQuery):
         )
     
     elif data == "help_menu":
-        # help_command already imported, use directly
         class FakeMessage:
             def __init__(self, chat, from_user, edit_text):
                 self.chat = chat
@@ -163,7 +161,6 @@ async def callback_handler(client, callback_query: CallbackQuery):
     
     # ========== NAVIGATION ==========
     elif data == "home":
-        # ✅ Home button shows HELP message
         class FakeMessage:
             def __init__(self, chat, from_user, edit_text):
                 self.chat = chat
@@ -203,49 +200,6 @@ async def callback_handler(client, callback_query: CallbackQuery):
     
     elif data == "back_to_game_instructions":
         await back_to_game_instructions(callback_query)
-    
-    # ========== SOLO STATS & LEADERBOARD ==========
-    elif data == "solo_stats":
-        from handlers.solo import solo_stats_command
-        class FakeMessage:
-            def __init__(self, chat, from_user, edit_text):
-                self.chat = chat
-                self.from_user = from_user
-                self.reply_text = edit_text
-        fake_msg = FakeMessage(
-            callback_query.message.chat,
-            callback_query.from_user,
-            callback_query.message.edit_text
-        )
-        await solo_stats_command(client, fake_msg)
-    
-    elif data == "solo_leaderboard":
-        from handlers.solo import solo_leaderboard_command
-        class FakeMessage:
-            def __init__(self, chat, from_user, edit_text):
-                self.chat = chat
-                self.from_user = from_user
-                self.reply_text = edit_text
-        fake_msg = FakeMessage(
-            callback_query.message.chat,
-            callback_query.from_user,
-            callback_query.message.edit_text
-        )
-        await solo_leaderboard_command(client, fake_msg)
-    
-    elif data == "solo_start":
-        from handlers.solo import solo_start_command
-        class FakeMessage:
-            def __init__(self, chat, from_user, edit_text):
-                self.chat = chat
-                self.from_user = from_user
-                self.reply_text = edit_text
-        fake_msg = FakeMessage(
-            callback_query.message.chat,
-            callback_query.from_user,
-            callback_query.message.edit_text
-        )
-        await solo_start_command(client, fake_msg)
     
     # ========== DEFAULT ==========
     else:
