@@ -1,7 +1,7 @@
 # TODO: Add your code here
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from pyrogram.enums import ButtonStyle
-from config import UPDATES_LINK, SUPPORT_LINK, OWNER_LINK, GAME_INSTRUCTIONS_IMAGE_URL
+from config import UPDATES_LINK, SUPPORT_LINK, OWNER_LINK, GAME_INSTRUCTIONS_IMAGE_URL, TEAM_PLAY_VIDEO_URL
 
 HELP_MESSAGE = """
 Hello! 🤗 Need some help with Cricket Master Bot? Here are some tips to get you started:
@@ -149,14 +149,29 @@ async def solo_mode_menu(callback_query):
 
 
 async def team_mode_menu(callback_query):
-    """Team mode menu - Only BACK button"""
+    """Team mode menu with video and inline buttons (as per screenshot)"""
+    from config import TEAM_PLAY_VIDEO_URL
+    
     buttons = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("START", callback_data="team_start", style=ButtonStyle.SUCCESS),
+            InlineKeyboardButton("ADD", callback_data="team_add", style=ButtonStyle.PRIMARY),
+            InlineKeyboardButton("REMOVE", callback_data="team_remove", style=ButtonStyle.DANGER)
+        ],
+        [
+            InlineKeyboardButton("START GAME", callback_data="team_startgame", style=ButtonStyle.PRIMARY),
+            InlineKeyboardButton("BOWLING", callback_data="team_bowling", style=ButtonStyle.PRIMARY),
+            InlineKeyboardButton("BATTING", callback_data="team_batting", style=ButtonStyle.PRIMARY)
+        ],
         [
             InlineKeyboardButton("◀️ BACK", callback_data="back_to_game_instructions", style=ButtonStyle.DEFAULT)
         ]
     ])
-    await callback_query.message.edit_text(
-        TEAM_MODE_MESSAGE,
+    
+    await callback_query.message.delete()
+    await callback_query.message.reply_video(
+        video=TEAM_PLAY_VIDEO_URL,
+        caption=TEAM_MODE_MESSAGE,
         reply_markup=buttons
     )
     await callback_query.answer()
