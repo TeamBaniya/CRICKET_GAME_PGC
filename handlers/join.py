@@ -10,9 +10,10 @@ from handlers.game import active_games
 
 # Try to import image URL, if not exists use empty string
 try:
-    from config import MEMBERS_LIST_IMAGE_URL
+    from config import MEMBERS_LIST_IMAGE_URL, BOWLING_VIDEO_URL
 except ImportError:
     MEMBERS_LIST_IMAGE_URL = ""
+    BOWLING_VIDEO_URL = ""
 
 join_timers = {}
 
@@ -81,7 +82,7 @@ async def update_game_message(client, chat_id, game):
         f"Join the game using `/joingame` ({minutes}:{seconds:02d} minutes left)\n\n"
         f"**Players joined:**\n{players_list}\n\n"
         f"**Total players:** {len(game['players'])}\n\n"
-        f"Game will start automatically in {seconds} seconds!"
+        f"Game will start automatically when timer ends!"
     )
     
     try:
@@ -130,11 +131,11 @@ async def start_timers(client, chat_id):
 
 
 async def auto_start_game(client, chat_id):
-    """Auto start game after timer and send members list image (no button)"""
+    """Auto start game after timer - Direct bowling screen (no extra message)"""
     if chat_id in active_games:
         game = active_games[chat_id]
         if game["status"] == "waiting":
-            game["status"] = "starting"
+            game["status"] = "live"
             
             # Send members list image WITHOUT any button
             players_list = ""
@@ -159,23 +160,51 @@ async def auto_start_game(client, chat_id):
             else:
                 await client.send_message(chat_id, caption)
             
-            # Start the game immediately (no extra button)
-            game["status"] = "live"
+            # Set current bowler and batter for match.py
+            from handlers.match import active_matches
+            if chat_id in active_matches:
+                match = active_matches[chat_id]
+                match["players"] = game["players"]
+                match["current_bowler_index"] = 0
+                match["current_batter_index"] = 1 if len(game["players"]) > 1 else 0
+                match["current_bowler"] = game["players"][0]["user_id"]
+                match["current_batter"] = game["players"][match["current_batter_index"]]["user_id"]
+                match["bowling_status"] = "waiting_for_number"
+                match["batting_status"] = "waiting"
             
-            # Set current batter and bowler
-            game["current_batter_index"] = 0
-            game["current_bowler_index"] = 1 if len(game["players"]) > 1 else 0
-            game["current_batter"] = game["players"][game["current_batter_index"]]["user_id"]
-            game["current_bowler"] = game["players"][game["current_bowler_index"]]["user_id"]
-            
-            await client.send_message(
-                chat_id,
-                f"🏏 **GAME STARTING!** 🏏\n\n"
-                f"👥 Total players: {len(game['players'])}\n\n"
-                f"🎯 **Bowler:** {game['players'][game['current_bowler_index']]['first_name']}\n"
-                f"🏏 **Batter:** {game['players'][game['current_batter_index']]['first_name']}\n\n"
-                f"Use `/bowling` to start bowling!"
-            )
+            # Directly send bowling screen (no extra "Use /bowling" message)
+            await send_bowling_screen_direct(client, chat_id, game["players"][0]["first_name"])
+
+
+async def send_bowling_screen_direct(client, chat_id, bowler_name):
+    """Send bowling screen directly - message then video then button"""
+    buttons = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🏏 Bowling", callback_data="bowling_btn", style=ButtonStyle.PRIMARY)]
+    ])
+    
+    # Send message first
+    await client.send_message(
+        chat_id,
+        f"🎯 **Hey {bowler_name}, now you're bowling!**"
+    )
+    
+    # Wait 2 seconds
+    await asyncio.sleep(2)
+    
+    # Send bowling video with button and caption
+    if BOWLING_VIDEO_URL:
+        await client.send_video(
+            chat_id,
+            video=BOWLING_VIDEO_URL,
+            caption=f"👏 **{bowler_name} now you can send number on bot pm, You have 1 min.**",
+            reply_markup=buttons
+        )
+    else:
+        await client.send_message(
+            chat_id,
+            f"👏 **{bowler_name} now you can send number on bot pm, You have 1 min.**",
+            reply_markup=buttons
+        )
 
 
 async def get_active_game(chat_id):
