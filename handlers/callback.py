@@ -1,7 +1,7 @@
 # TODO: Add your code here
 from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ButtonStyle
-from handlers.help import game_instructions_menu, solo_mode_menu, back_to_game_instructions, team_mode_menu
+from handlers.help import game_instructions_menu, solo_mode_menu, back_to_game_instructions, team_mode_menu, help_command
 from handlers.auction import auction_mode_menu
 from handlers.match import overs_selected
 from handlers.start import start_command, add_to_group_callback
@@ -163,6 +163,7 @@ async def callback_handler(client, callback_query: CallbackQuery):
     
     # ========== NAVIGATION ==========
     elif data == "home":
+        # ✅ Home button now shows HELP message
         class FakeMessage:
             def __init__(self, chat, from_user, edit_text):
                 self.chat = chat
@@ -173,7 +174,7 @@ async def callback_handler(client, callback_query: CallbackQuery):
             callback_query.from_user,
             callback_query.message.edit_text
         )
-        await start_command(client, fake_msg)
+        await help_command(client, fake_msg)
     
     elif data == "back":
         await game_instructions_menu(callback_query)
