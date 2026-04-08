@@ -57,68 +57,13 @@ async def create_solo_game(callback_query):
         f"👥 **Players joined:** 1\n\n"
         f"Join the game using `/joingame` (2 minutes to join)\n\n"
         f"⏰ You have 2 minutes to join!\n\n"
-        f"Type `/startgame` when ready!"
+        f"Game will start automatically when timer ends!"
     )
     
-    # Start auto-start timer for solo game
-    asyncio.create_task(auto_start_solo_game(callback_query._client, chat_id))
+    # Start timers (60s, 30s, 10s warnings and auto-start)
+    from handlers.join import start_timers
+    asyncio.create_task(start_timers(callback_query._client, chat_id))
     
-    await callback_query.answer()
-
-
-async def auto_start_solo_game(client, chat_id):
-    """Auto start solo game after 2 minutes"""
-    await asyncio.sleep(120)  # 2 minutes
-    
-    if chat_id in active_games:
-        game = active_games[chat_id]
-        if game["status"] == "waiting":
-            game["status"] = "starting"
-            await send_solo_game_start_image(client, chat_id, game)
-
-
-async def send_solo_game_start_image(client, chat_id, game):
-    """Send image with players list before game starts"""
-    players_list = ""
-    for i, player in enumerate(game["players"], 1):
-        username = f"@{player['username']}" if player.get('username') else player['name']
-        players_list += f"{i}. {username}\n"
-    
-    caption = f"""🏏 **CRICKET GAME PLAYERS**
-🌳 **SOLO TREE COMMUNITY**
-
-**Unknown Host**
-**Solo Players**
-
-{players_list}"""
-    
-    buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🎮 Start Game", callback_data="start_solo_match", style=ButtonStyle.SUCCESS)]
-    ])
-    
-    await client.send_photo(
-        chat_id,
-        photo=SOLO_GAME_START_IMAGE,
-        caption=caption,
-        reply_markup=buttons
-    )
-
-
-async def start_solo_match_callback(callback_query):
-    """Start solo match after image is shown"""
-    chat_id = callback_query.message.chat.id
-    
-    if chat_id in active_games:
-        game = active_games[chat_id]
-        game["status"] = "live"
-        
-        await callback_query.message.edit_text(
-            "🏏 **SOLO MATCH STARTING!** 🏏\n\n"
-            f"👥 Total players: {len(game['players'])}\n\n"
-            "Each player will bat one by one!\n\n"
-            f"👉 **{game['players'][0]['first_name']}**, you're batting first!\n\n"
-            "Send numbers 1-6 in group to play!"
-        )
     await callback_query.answer()
 
 
@@ -154,9 +99,14 @@ async def create_team_game(callback_query):
         f"👥 **Players joined:** 1\n\n"
         f"Join the game using `/joingame` (2 minutes to join)\n\n"
         f"⏰ You have 2 minutes to join!\n\n"
-        f"Type `/startgame` when ready!\n\n"
+        f"Game will start automatically when timer ends!\n\n"
         f"Use `/add_A` and `/add_B` to assign teams!"
     )
+    
+    # Start timers (60s, 30s, 10s warnings and auto-start)
+    from handlers.join import start_timers
+    asyncio.create_task(start_timers(callback_query._client, chat_id))
+    
     await callback_query.answer()
 
 
