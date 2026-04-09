@@ -18,56 +18,61 @@ async def handle_dm_message(client, message: Message):
     text_upper = text.upper()
     
     # ========== DEEP LINK HANDLER (BOWLING) ==========
-if text.startswith("/start bowling_"):
-    chat_id_str = text.split("bowling_")[1]
-    chat_id = int(chat_id_str)
-    
-    user_bowling_chat[user_id] = chat_id
-    
-    # Get game info from active_games
-    from handlers.gameplay import active_games
-    game = active_games.get(chat_id, {})
-    
-    # Get current batter name
-    current_batter_id = game.get("current_batter")
-    current_batter_name = "Unknown"
-    for player in game.get("players", []):
-        if player.get("user_id") == current_batter_id:
-            current_batter_name = player.get("first_name")
-            break
-    
-    # Get over/balls info
-    current_balls = game.get("current_balls", 0)
-    overs_done = current_balls // 6
-    balls_done = current_balls % 6
-    
-    # Create group link button
-    group_link = f"https://t.me/c/{str(chat_id).replace('-100', '')}"
-    
-    buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🏀 Group", url=group_link, style=ButtonStyle.PRIMARY)]
-    ])
-    
-    # Send IMAGE instead of text
-    from config import BOWLING_DM_IMAGE_URL
-    if BOWLING_DM_IMAGE_URL:
-        await message.reply_photo(
-            photo=BOWLING_DM_IMAGE_URL,
-            caption=f"🎯 **Current batter: {current_batter_name}**\n\n"
-                    f"📊 **OVER BALLS = {overs_done}.{balls_done}**\n\n"
-                    f"Send your bowling number (1-6)!\n\n"
-                    f"⏰ You have 60 seconds!",
-            reply_markup=buttons
-        )
-    else:
-        await message.reply_text(
-            f"🎯 **Current batter: {current_batter_name}**\n\n"
-            f"📊 **OVER BALLS = {overs_done}.{balls_done}**\n\n"
-            f"Send your bowling number (1-6)!\n\n"
-            f"⏰ You have 60 seconds!",
-            reply_markup=buttons
-        )
-    return
+    if text.startswith("/start bowling_"):
+        chat_id_str = text.split("bowling_")[1]
+        chat_id = int(chat_id_str)
+        
+        user_bowling_chat[user_id] = chat_id
+        
+        # Get game info from active_games
+        from handlers.gameplay import active_games
+        game = active_games.get(chat_id, {})
+        
+        # Get current batter name
+        current_batter_id = game.get("current_batter")
+        current_batter_name = "Unknown"
+        for player in game.get("players", []):
+            if player.get("user_id") == current_batter_id:
+                current_batter_name = player.get("first_name")
+                break
+        
+        # Get over/balls info
+        current_balls = game.get("current_balls", 0)
+        overs_done = current_balls // 6
+        balls_done = current_balls % 6
+        
+        # Create group link button
+        group_link = f"https://t.me/c/{str(chat_id).replace('-100', '')}"
+        
+        buttons = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🏀 Group", url=group_link, style=ButtonStyle.PRIMARY)]
+        ])
+        
+        # Try to get image URL, if not exists use text only
+        try:
+            from config import BOWLING_DM_IMAGE_URL
+        except ImportError:
+            BOWLING_DM_IMAGE_URL = ""
+        
+        # Send IMAGE or text
+        if BOWLING_DM_IMAGE_URL:
+            await message.reply_photo(
+                photo=BOWLING_DM_IMAGE_URL,
+                caption=f"🎯 **Current batter: {current_batter_name}**\n\n"
+                        f"📊 **OVER BALLS = {overs_done}.{balls_done}**\n\n"
+                        f"Send your bowling number (1-6)!\n\n"
+                        f"⏰ You have 60 seconds!",
+                reply_markup=buttons
+            )
+        else:
+            await message.reply_text(
+                f"🎯 **Current batter: {current_batter_name}**\n\n"
+                f"📊 **OVER BALLS = {overs_done}.{balls_done}**\n\n"
+                f"Send your bowling number (1-6)!\n\n"
+                f"⏰ You have 60 seconds!",
+                reply_markup=buttons
+            )
+        return
     
     # ========== SOLO MODE HANDLING ==========
     from handlers.solo import solo_games
@@ -139,6 +144,9 @@ if text.startswith("/start bowling_"):
                 bowler_number_store[chat_id] = 0
                 # ✅ NO group message - only DM confirmation
                 await message.reply_text("✅ You chose WICKET! Waiting for batsman...")
+                
+                # Send batting screen to group
+                await send_batting_screen_to_group(client, chat_id, game)
                 return
                 
             elif text.isdigit() and 1 <= int(text) <= 6:
@@ -148,6 +156,9 @@ if text.startswith("/start bowling_"):
                 bowler_number_store[chat_id] = number
                 # ✅ NO group message - only DM confirmation
                 await message.reply_text(f"✅ You sent {number}! Waiting for batsman...")
+                
+                # Send batting screen to group
+                await send_batting_screen_to_group(client, chat_id, game)
                 return
             else:
                 await message.reply_text(
@@ -170,11 +181,16 @@ if text.startswith("/start bowling_"):
                     game["current_balls"] = game.get("current_balls", 0) + 1
                     game["batting_status"] = "completed"
                     
+                    # Send WICKET video
+                    from config import WICKET_VIDEO_URL
+                    if WICKET_VIDEO_URL:
+                        await client.send_video(chat_id, WICKET_VIDEO_URL, caption=f"🎯 **WICKET!** 🎯")
+                    
                     # Send OUT video
                     if OUT_VIDEO_URL:
-                        await client.send_video(chat_id, OUT_VIDEO_URL, caption=f"🎯 **Number matches! {message.from_user.first_name} is out!**")
+                        await client.send_video(chat_id, OUT_VIDEO_URL, caption=f"❌ **Number matches! {message.from_user.first_name} is out!**")
                     else:
-                        await client.send_message(chat_id, f"🎯 **Number matches! {message.from_user.first_name} is out!**")
+                        await client.send_message(chat_id, f"❌ **Number matches! {message.from_user.first_name} is out!**")
                     
                     response_time = random.randint(30, 150)
                     await client.send_message(
@@ -270,6 +286,34 @@ if text.startswith("/start bowling_"):
         "• /startgame - Create team match\n"
         "• /joingame - Join existing game"
     )
+
+
+async def send_batting_screen_to_group(client, chat_id, game):
+    """Send batting screen to group after bowler sends number"""
+    from config import BATTING_VIDEO_URL
+    
+    # Get current batter name
+    current_batter_id = game.get("current_batter")
+    current_batter_name = "Unknown"
+    for player in game.get("players", []):
+        if player.get("user_id") == current_batter_id:
+            current_batter_name = player.get("first_name")
+            break
+    
+    ratings_text = "ND BAT 66 | MENTAL 66 | PACE 63 | PHYSICAL 66"
+    
+    await client.send_message(
+        chat_id,
+        f"🏏 **Now Batter: {current_batter_name} can send number (1-6)!!**\n\n"
+        f"📊 **Ratings:** {ratings_text}\n\n"
+        f"Type your number (1-6) in this group!"
+    )
+    
+    # Send batting video
+    if BATTING_VIDEO_URL:
+        await client.send_video(chat_id, BATTING_VIDEO_URL)
+    
+    game["batting_status"] = "waiting_for_number"
 
 
 async def end_match_team(client, chat_id, game):
