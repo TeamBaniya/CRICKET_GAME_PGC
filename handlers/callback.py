@@ -5,7 +5,6 @@ from handlers.help import game_instructions_menu, solo_mode_menu, back_to_game_i
 from handlers.auction import auction_mode_menu
 from handlers.match import overs_selected
 from handlers.start import start_command, add_to_group_callback
-# from handlers.gameplay import bowling_button_callback  # ❌ REMOVED - no longer needed
 from config import UPDATES_LINK, SUPPORT_LINK
 
 async def callback_handler(client, callback_query: CallbackQuery):
@@ -86,9 +85,10 @@ async def callback_handler(client, callback_query: CallbackQuery):
         from handlers.game import start_solo_match_callback
         await start_solo_match_callback(callback_query)
     
-    # ========== BOWLING BUTTON CALLBACK - REMOVED (using deep link now) ==========
-    # elif data == "bowling_btn":
-    #     await bowling_button_callback(callback_query)
+    # ========== BOWLING BUTTON - IGNORE (deep link used) ==========
+    elif data == "bowling_btn":
+        # Silent ignore - deep link already sent in group
+        await callback_query.answer()
     
     # ========== BATTING BUTTON CALLBACK ==========
     elif data == "batting_btn":
@@ -153,11 +153,6 @@ async def callback_handler(client, callback_query: CallbackQuery):
     elif data == "auction_skip":
         from handlers.auction import auction_skip_callback
         await auction_skip_callback(callback_query)
-    
-    # ========== BOWLER NUMBER BUTTONS (1-6) - REMOVED ==========
-    # Deep link system use kar rahe hain ab
-    
-    # ========== BOWLER BACK TO GROUP BUTTON - REMOVED ==========
     
     # ========== DEFAULT ==========
     else:
