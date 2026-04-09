@@ -10,15 +10,21 @@ from handlers.game import active_games
 
 # Try to import image URL, if not exists use empty string
 try:
-    from config import MEMBERS_LIST_IMAGE_URL, BOWLING_VIDEO_URL
+    from config import MEMBERS_LIST_IMAGE_URL, BOWLING_VIDEO_URL, BOT_USERNAME
 except ImportError:
     MEMBERS_LIST_IMAGE_URL = ""
     BOWLING_VIDEO_URL = ""
+    BOT_USERNAME = "testingpgcbot"
 
 join_timers = {}
 
 async def joingame_command(client, message: Message):
     """/joingame command - Join an existing game"""
+    # ✅ Check if user exists (not anonymous/channel)
+    if not message.from_user:
+        await message.reply_text("❌ Anonymous users cannot join games! Please use a normal account.")
+        return
+    
     user = message.from_user
     chat_id = message.chat.id
     user_id = user.id
@@ -160,7 +166,7 @@ async def auto_start_game(client, chat_id):
             else:
                 await client.send_message(chat_id, caption)
             
-            # ✅ Set current bowler and batter in active_games (not just match)
+            # ✅ Set current bowler and batter in active_games
             players = game["players"]
             if len(players) >= 2:
                 game["current_bowler_index"] = 0
@@ -170,7 +176,7 @@ async def auto_start_game(client, chat_id):
                 game["bowler_name"] = players[0]["first_name"]
                 game["bowling_status"] = "waiting_for_number"
                 game["batting_status"] = "waiting"
-                print(f"🔵 DEBUG: current_bowler set to {game['current_bowler']} (should be {players[0]['user_id']})")
+                print(f"🔵 DEBUG: current_bowler set to {game['current_bowler']}")
             else:
                 game["current_bowler_index"] = 0
                 game["current_batter_index"] = 0
@@ -178,7 +184,6 @@ async def auto_start_game(client, chat_id):
                 game["current_batter"] = players[0]["user_id"]
                 game["bowler_name"] = players[0]["first_name"]
                 game["bowling_status"] = "waiting_for_number"
-                print(f"🔵 DEBUG: Solo mode - current_bowler set to {game['current_bowler']}")
             
             # Also set in active_matches for compatibility
             from handlers.match import active_matches
@@ -188,14 +193,21 @@ async def auto_start_game(client, chat_id):
                 active_matches[chat_id]["current_batter"] = game["current_batter"]
                 active_matches[chat_id]["bowling_status"] = "waiting_for_number"
             
-            # Directly send bowling screen
+            # Directly send bowling screen with DEEP LINK
             await send_bowling_screen_direct(client, chat_id, game["bowler_name"])
 
 
 async def send_bowling_screen_direct(client, chat_id, bowler_name):
-    """Send bowling screen directly - message then video then button"""
+    """Send bowling screen directly - message then video then DEEP LINK button"""
+    # 🔥 Deep Link Button (Direct DM open) - NO callback_data
     buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🏏 Bowling", callback_data="bowling_btn", style=ButtonStyle.PRIMARY)]
+        [
+            InlineKeyboardButton(
+                "🏏 Bowling",
+                url=f"https://t.me/{BOT_USERNAME}?start=bowling_{chat_id}",
+                style=ButtonStyle.PRIMARY
+            )
+        ]
     ])
     
     # Send message first
@@ -212,13 +224,13 @@ async def send_bowling_screen_direct(client, chat_id, bowler_name):
         await client.send_video(
             chat_id,
             video=BOWLING_VIDEO_URL,
-            caption=f"👏 **{bowler_name} now you can send number on bot pm, You have 1 min.**",
+            caption=f"👏 **{bowler_name} click below to send your number!**",
             reply_markup=buttons
         )
     else:
         await client.send_message(
             chat_id,
-            f"👏 **{bowler_name} now you can send number on bot pm, You have 1 min.**",
+            f"👏 **{bowler_name} click below to send your number!**",
             reply_markup=buttons
         )
 
