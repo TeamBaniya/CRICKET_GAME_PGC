@@ -30,6 +30,7 @@ TEAM_BOWLING_VIDEO_URL = "https://graph.org/file/3680f9d14543771855ee0-1ff9d9b2a
 TEAM_BATTING_VIDEO_URL = "https://graph.org/file/088a969e3ba0815255edc-d60caf55c97b8b1615.mp4"
 MEMBERS_LIST_IMAGE_URL = "https://files.catbox.moe/zovpa4.jpg"
 SOLO_GAME_START_IMAGE = "https://files.catbox.moe/zovpa4.jpg"
+BOWLING_DM_IMAGE_URL = "https://graph.org/file/3680f9d14543771855ee0-1ff9d9b2aeabefedb2.mp4"
 
 # ========== LINKS (AAP YAHAN APNE LINKS DAALOGE) ==========
 UPDATES_LINK = "https://t.me/your_updates_channel"      # 📢 UPDATES button
