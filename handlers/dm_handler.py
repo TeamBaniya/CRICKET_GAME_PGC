@@ -1,5 +1,6 @@
 # TODO: Add your code here
-from pyrogram.types import Message
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.enums import ButtonStyle
 from handlers.solo import solo_play_number, solo_wicket
 from database import db
 import random
@@ -7,12 +8,36 @@ import random
 # Store bowler and batter numbers
 bowler_number_store = {}
 batter_number_store = {}
+user_bowling_chat = {}  # Store chat_id for user's bowling session
 
 
 async def handle_dm_message(client, message: Message):
     """Handle messages received in bot's DM"""
     user_id = message.from_user.id
-    text = message.text.upper().strip()
+    text = message.text.strip()
+    text_upper = text.upper()
+    
+    # ========== DEEP LINK HANDLER (BOWLING) ==========
+    if text.startswith("/start bowling_"):
+        chat_id_str = text.split("bowling_")[1]
+        chat_id = int(chat_id_str)
+        
+        user_bowling_chat[user_id] = chat_id
+        
+        # Get group link
+        group_link = f"https://t.me/c/{str(chat_id).replace('-100', '')}"
+        
+        buttons = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 Go to Group", url=group_link, style=ButtonStyle.PRIMARY)]
+        ])
+        
+        await message.reply_text(
+            "🎯 **Send your bowling number (1-6)!**\n\n"
+            "Type a number between 1-6 and send.\n\n"
+            "⏰ You have 60 seconds!",
+            reply_markup=buttons
+        )
+        return
     
     # ========== SOLO MODE HANDLING ==========
     from handlers.solo import solo_games
@@ -20,7 +45,7 @@ async def handle_dm_message(client, message: Message):
         game = solo_games[user_id]
         if game.get("status") == "batting":
             
-            if text == "W":
+            if text_upper == "W":
                 # Wicket
                 result = await solo_wicket(user_id)
                 if result:
@@ -78,7 +103,7 @@ async def handle_dm_message(client, message: Message):
     # Check for bowling (bowler sending number)
     for chat_id, game in active_games.items():
         if game.get("current_bowler") == user_id and game.get("bowling_status") == "waiting_for_number":
-            if text == "W":
+            if text_upper == "W":
                 # Bowler chose Wicket
                 game["bowling_status"] = "completed"
                 bowler_number_store[chat_id] = 0
