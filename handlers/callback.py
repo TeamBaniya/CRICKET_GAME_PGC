@@ -8,6 +8,7 @@ from config import UPDATES_LINK, SUPPORT_LINK
 
 async def callback_handler(client, callback_query: CallbackQuery):
     data = callback_query.data
+    print(f"🔵 DEBUG: callback_handler called with data: {data}")
     await callback_query.answer()
     
     # ========== MAIN MENU NAVIGATION ==========
@@ -86,6 +87,7 @@ async def callback_handler(client, callback_query: CallbackQuery):
     
     # ========== BOWLING BUTTON CALLBACK ==========
     elif data == "bowling_btn":
+        print("🔵 DEBUG: bowling_btn callback received, calling bowling_button_callback")
         from handlers.gameplay import bowling_button_callback
         await bowling_button_callback(callback_query)
     
@@ -155,6 +157,7 @@ async def callback_handler(client, callback_query: CallbackQuery):
     
     # ========== DEFAULT ==========
     else:
+        print(f"🔴 DEBUG: Unknown callback data: {data}")
         await callback_query.message.edit_text(
             "⚠️ **Feature coming soon!**\n\n"
             "This feature is under development."
