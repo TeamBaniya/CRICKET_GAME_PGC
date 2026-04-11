@@ -1,4 +1,3 @@
-# TODO: Add your code here
 from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ButtonStyle
 from handlers.help import game_instructions_menu, solo_mode_menu, back_to_game_instructions, team_mode_menu, help_command
@@ -9,7 +8,7 @@ from config import UPDATES_LINK, SUPPORT_LINK
 
 async def callback_handler(client, callback_query: CallbackQuery):
     data = callback_query.data
-    await callback_query.answer()  # Fast response
+    await callback_query.answer()
     
     # ========== MAIN MENU NAVIGATION ==========
     if data == "play_zone":
@@ -85,10 +84,10 @@ async def callback_handler(client, callback_query: CallbackQuery):
         from handlers.game import start_solo_match_callback
         await start_solo_match_callback(callback_query)
     
-    # ========== BOWLING BUTTON - IGNORE (deep link used) ==========
+    # ========== BOWLING BUTTON CALLBACK ==========
     elif data == "bowling_btn":
-        # Silent ignore - deep link already sent in group
-        await callback_query.answer()
+        from handlers.gameplay import bowling_button_callback
+        await bowling_button_callback(callback_query)
     
     # ========== BATTING BUTTON CALLBACK ==========
     elif data == "batting_btn":
