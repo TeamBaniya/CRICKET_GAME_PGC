@@ -127,7 +127,7 @@ async def switch_to_next_bowler(client, chat_id):
 # ==================== BOWLING BUTTON CALLBACK ====================
 
 async def bowling_button_callback(callback_query):
-    """Handle bowling button click - send DM to bowler"""
+    """Handle bowling button click - send DM to bowler with batter name"""
     user_id = callback_query.from_user.id
     chat_id = callback_query.message.chat.id
     
@@ -157,7 +157,7 @@ async def bowling_button_callback(callback_query):
     # Update group message
     await callback_query.message.edit_text(f"✅ **{callback_query.from_user.first_name} check your DM!**")
     
-    # Send DM to bowler
+    # Send DM to bowler with batter name
     try:
         await callback_query._client.send_message(
             user_id,
