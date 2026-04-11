@@ -15,19 +15,23 @@ bowler_number_store = {}
 
 async def bowling_command(client, message: Message):
     """/bowling command - Simple callback button"""
+    print("🔵 DEBUG: bowling_command CALLED")
     user_id = message.from_user.id
     chat_id = message.chat.id
 
     if chat_id not in active_games:
+        print("🔴 DEBUG: No active game found!")
         await message.reply_text("❌ No active game found!")
         return
 
     game = active_games[chat_id]
 
     if game.get("current_bowler") != user_id:
+        print(f"🔴 DEBUG: User {user_id} is not the bowler! Current bowler: {game.get('current_bowler')}")
         await message.reply_text("❌ You are not the bowler!")
         return
 
+    print(f"🔵 DEBUG: Bowler confirmed: {user_id}")
     game["bowling_status"] = "waiting_for_number"
     game["bowler_name"] = message.from_user.first_name
     game["bowler_id"] = user_id
@@ -59,6 +63,7 @@ async def bowling_command(client, message: Message):
             f"👏 **{message.from_user.first_name} click below to send your number!**",
             reply_markup=buttons
         )
+    print("🔵 DEBUG: Bowling button sent to group")
 
     # Start 60 second timer
     await start_bowling_timer(client, chat_id, message.from_user.first_name, user_id)
@@ -128,19 +133,30 @@ async def switch_to_next_bowler(client, chat_id):
 
 async def bowling_button_callback(callback_query):
     """Handle bowling button click - send DM to bowler with batter name"""
+    print("🔵 DEBUG: bowling_button_callback CALLED")
+    print(f"🔵 DEBUG: callback_query.data = {callback_query.data}")
+    print(f"🔵 DEBUG: callback_query.from_user.id = {callback_query.from_user.id}")
+    
     user_id = callback_query.from_user.id
     chat_id = callback_query.message.chat.id
     
+    print(f"🔵 DEBUG: user_id = {user_id}, chat_id = {chat_id}")
+    
     if chat_id not in active_games:
+        print("🔴 DEBUG: No active game found in active_games!")
         await callback_query.answer("No active game!", show_alert=True)
         return
     
     game = active_games[chat_id]
+    print(f"🔵 DEBUG: Game found for chat_id {chat_id}")
+    
     if game.get("current_bowler") != user_id:
+        print(f"🔴 DEBUG: User {user_id} is not current bowler! Current bowler: {game.get('current_bowler')}")
         await callback_query.answer("You are not the current bowler!", show_alert=True)
         return
     
     if game.get("bowling_status") != "waiting_for_number":
+        print(f"🔴 DEBUG: bowling_status is {game.get('bowling_status')}, not waiting_for_number")
         await callback_query.answer("Already processed!", show_alert=True)
         return
     
@@ -151,11 +167,14 @@ async def bowling_button_callback(callback_query):
         if player.get("user_id") == current_batter_id:
             current_batter_name = player.get("first_name")
             break
+    print(f"🔵 DEBUG: Current batter: {current_batter_name} (ID: {current_batter_id})")
     
     await callback_query.answer("Check your DM!")
+    print("🔵 DEBUG: Answer sent to user")
     
     # Update group message
     await callback_query.message.edit_text(f"✅ **{callback_query.from_user.first_name} check your DM!**")
+    print("🔵 DEBUG: Group message updated")
     
     # Send DM to bowler with batter name
     try:
@@ -166,7 +185,7 @@ async def bowling_button_callback(callback_query):
             f"⏰ You have 60 seconds!\n\n"
             f"Just type a number between 1-6 and send."
         )
-        print(f"🔵 DEBUG: DM sent to {user_id}")
+        print(f"🔵 DEBUG: DM sent successfully to {user_id}")
     except Exception as e:
         print(f"🔴 DEBUG: Cannot send DM! Error: {e}")
         await callback_query.message.reply_text(f"❌ Cannot send DM! Error: {e}")
@@ -176,34 +195,44 @@ async def bowling_button_callback(callback_query):
 
 async def handle_group_batting_number(client, message: Message):
     """Handle batting number sent directly in group (without command)"""
+    print("🔵 DEBUG: handle_group_batting_number CALLED")
     user_id = message.from_user.id
     chat_id = message.chat.id
     number = int(message.text.strip())
+    print(f"🔵 DEBUG: User {user_id} sent number {number} in chat {chat_id}")
     
     # Add thumb emoji reaction 👍
     try:
         await message.react(emoji="👍")
+        print("🔵 DEBUG: Added 👍 reaction")
     except:
         pass
     
     if chat_id not in active_games:
+        print("🔴 DEBUG: No active game found!")
         await message.reply_text("❌ No active game found! Use /startgame first.")
         return
     
     game = active_games[chat_id]
+    print(f"🔵 DEBUG: Game found")
+    
     if game.get("current_batter") != user_id:
+        print(f"🔴 DEBUG: User {user_id} is not current batter! Current batter: {game.get('current_batter')}")
         await message.reply_text("❌ You are not the current batsman!")
         return
     
     if game.get("batting_status") != "waiting_for_number":
+        print(f"🔴 DEBUG: batting_status is {game.get('batting_status')}, not waiting_for_number")
         await message.reply_text("❌ Already processed! Wait for your turn.")
         return
     
     # Get bowler's number
     bowler_num = bowler_number_store.get(chat_id, 0)
+    print(f"🔵 DEBUG: Bowler number: {bowler_num}, Batter number: {number}")
     
     # Check if OUT (numbers match)
     if bowler_num == number and bowler_num != 0:
+        print("🔵 DEBUG: OUT! Numbers match")
         # WICKET!
         game["current_wickets"] = game.get("current_wickets", 0) + 1
         game["current_balls"] = game.get("current_balls", 0) + 1
@@ -245,6 +274,7 @@ async def handle_group_batting_number(client, message: Message):
     game["current_balls"] = game.get("current_balls", 0) + 1
     game["ball_sequence"].append(runs)
     game["batting_status"] = "completed"
+    print(f"🔵 DEBUG: NOT OUT! {runs} runs added. Total: {game['current_runs']}/{game['current_wickets']}")
     
     # Send runs video based on runs
     if runs == 6 and SIX_VIDEO_URL:
