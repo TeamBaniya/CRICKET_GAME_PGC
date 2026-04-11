@@ -1,7 +1,7 @@
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ButtonStyle
 from database import db
-from config import BOT_USERNAME, BOWLING_VIDEO_URL, BATTING_VIDEO_URL, OUT_VIDEO_URL, WICKET_VIDEO_URL, SIX_VIDEO_URL, FOUR_VIDEO_URL
+from config import BOWLING_VIDEO_URL, BATTING_VIDEO_URL, OUT_VIDEO_URL, WICKET_VIDEO_URL, SIX_VIDEO_URL, FOUR_VIDEO_URL
 import random
 import asyncio
 from handlers.game import active_games
@@ -14,7 +14,7 @@ bowler_number_store = {}
 # ==================== BOWLING COMMAND ====================
 
 async def bowling_command(client, message: Message):
-    """/bowling command - Deep link to DM"""
+    """/bowling command - Simple callback button"""
     user_id = message.from_user.id
     chat_id = message.chat.id
 
@@ -40,15 +40,9 @@ async def bowling_command(client, message: Message):
     # Wait 2 seconds
     await asyncio.sleep(2)
 
-    # 🔥 Deep Link Button (Direct DM open)
+    # Simple callback button
     buttons = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(
-                "🏏 Bowling",
-                url=f"https://t.me/{BOT_USERNAME}?start=bowling_{chat_id}",
-                style=ButtonStyle.PRIMARY
-            )
-        ]
+        [InlineKeyboardButton("🏏 Bowling", callback_data="bowling_btn", style=ButtonStyle.PRIMARY)]
     ])
 
     # Send bowling video with button
@@ -101,7 +95,6 @@ async def start_bowling_timer(client, chat_id, bowler_name, bowler_id):
             f"❌ **Seems Bowling player is not responding, User Eliminated from the game !!**"
         )
         
-        # Switch to next bowler
         await switch_to_next_bowler(client, chat_id)
 
 
@@ -129,6 +122,54 @@ async def switch_to_next_bowler(client, chat_id):
         chat_id,
         f"🔄 **Hey {next_bowler['first_name']}, now you're bowling!**"
     )
+
+
+# ==================== BOWLING BUTTON CALLBACK ====================
+
+async def bowling_button_callback(callback_query):
+    """Handle bowling button click - send DM to bowler"""
+    user_id = callback_query.from_user.id
+    chat_id = callback_query.message.chat.id
+    
+    if chat_id not in active_games:
+        await callback_query.answer("No active game!", show_alert=True)
+        return
+    
+    game = active_games[chat_id]
+    if game.get("current_bowler") != user_id:
+        await callback_query.answer("You are not the current bowler!", show_alert=True)
+        return
+    
+    if game.get("bowling_status") != "waiting_for_number":
+        await callback_query.answer("Already processed!", show_alert=True)
+        return
+    
+    # Get current batter name
+    current_batter_id = game.get("current_batter")
+    current_batter_name = "Unknown"
+    for player in game.get("players", []):
+        if player.get("user_id") == current_batter_id:
+            current_batter_name = player.get("first_name")
+            break
+    
+    await callback_query.answer("Check your DM!")
+    
+    # Update group message
+    await callback_query.message.edit_text(f"✅ **{callback_query.from_user.first_name} check your DM!**")
+    
+    # Send DM to bowler
+    try:
+        await callback_query._client.send_message(
+            user_id,
+            f"🎯 **Current batter: {current_batter_name}**\n\n"
+            f"Send your bowling number (1-6)!\n\n"
+            f"⏰ You have 60 seconds!\n\n"
+            f"Just type a number between 1-6 and send."
+        )
+        print(f"🔵 DEBUG: DM sent to {user_id}")
+    except Exception as e:
+        print(f"🔴 DEBUG: Cannot send DM! Error: {e}")
+        await callback_query.message.reply_text(f"❌ Cannot send DM! Error: {e}")
 
 
 # ==================== GROUP BATTING HANDLER ====================
@@ -272,7 +313,6 @@ async def switch_to_next_batsman(client, chat_id):
             f"Send your number (1-6) in group to play!"
         )
     else:
-        # No more batsmen - match over
         await end_match(client, None, chat_id)
 
 
@@ -296,29 +336,29 @@ async def end_match_command(client, message: Message):
     
     if chat_id in active_games:
         game = active_games[chat_id]
-        final_score = f"{game['current_runs']}/{game['current_wickets']}"
+        current_runs = game.get("current_runs", 0)
+        current_wickets = game.get("current_wickets", 0)
+        current_balls = game.get("current_balls", 0)
+        final_score = f"{current_runs}/{current_wickets}"
         
         await message.reply_text(
             f"🏆 **Match Ended!** 🏆\n\n"
             f"📊 **Final Score:** {final_score}\n"
-            f"📈 **Balls Faced:** {game['current_balls']}\n\n"
+            f"📈 **Balls Faced:** {current_balls}\n\n"
             f"Thanks for playing! 🎉\n\n"
             f"Type /startgame to play again"
         )
         
-        # Save match to database
         await db.create_match({
             "chat_id": chat_id,
             "score": final_score,
-            "balls": game['current_balls'],
+            "balls": current_balls,
             "players": game.get("players", []),
             "created_at": datetime.now()
         })
         
-        # Clear active game
         del active_games[chat_id]
         
-        # Clear stored numbers
         if chat_id in bowler_number_store:
             del bowler_number_store[chat_id]
     else:
@@ -329,18 +369,20 @@ async def end_match(client, message, chat_id):
     """End match internally"""
     if chat_id in active_games:
         game = active_games[chat_id]
-        final_score = f"{game['current_runs']}/{game['current_wickets']}"
+        current_runs = game.get("current_runs", 0)
+        current_wickets = game.get("current_wickets", 0)
+        current_balls = game.get("current_balls", 0)
+        final_score = f"{current_runs}/{current_wickets}"
         
         await client.send_message(
             chat_id,
             f"🏆 **Match Ended!** 🏆\n\n"
             f"📊 **Final Score:** {final_score}\n"
-            f"📈 **Balls Faced:** {game['current_balls']}\n\n"
+            f"📈 **Balls Faced:** {current_balls}\n\n"
             f"Thanks for playing! 🎉"
         )
         
         del active_games[chat_id]
         
-        # Clear stored numbers
         if chat_id in bowler_number_store:
             del bowler_number_store[chat_id]
