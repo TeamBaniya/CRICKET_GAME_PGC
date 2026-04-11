@@ -1,7 +1,7 @@
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ButtonStyle
 from database import db
-from config import BOWLING_VIDEO_URL, BATTING_VIDEO_URL, OUT_VIDEO_URL, WICKET_VIDEO_URL, SIX_VIDEO_URL, FOUR_VIDEO_URL
+from config import BOWLING_VIDEO_URL, BATTING_VIDEO_URL, OUT_VIDEO_URL, WICKET_VIDEO_URL, SIX_VIDEO_URL, FOUR_VIDEO_URL, BOT_USERNAME
 import random
 import asyncio
 from handlers.game import active_games
@@ -14,7 +14,7 @@ bowler_number_store = {}
 # ==================== BOWLING COMMAND ====================
 
 async def bowling_command(client, message: Message):
-    """/bowling command - Simple callback button"""
+    """/bowling command - Deep link to open DM directly"""
     print("🔵 DEBUG: bowling_command CALLED")
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -44,12 +44,18 @@ async def bowling_command(client, message: Message):
     # Wait 2 seconds
     await asyncio.sleep(2)
 
-    # Simple callback button
+    # 🔥 Deep Link Button - Directly opens DM (no callback)
     buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🏏 Bowling", callback_data="bowling_btn", style=ButtonStyle.PRIMARY)]
+        [
+            InlineKeyboardButton(
+                "🏏 Bowling",
+                url=f"https://t.me/{BOT_USERNAME}?start=bowling_{chat_id}",
+                style=ButtonStyle.PRIMARY
+            )
+        ]
     ])
 
-    # Send bowling video with button
+    # Send bowling video with deep link button
     if BOWLING_VIDEO_URL:
         await client.send_video(
             chat_id,
@@ -63,7 +69,7 @@ async def bowling_command(client, message: Message):
             f"👏 **{message.from_user.first_name} click below to send your number!**",
             reply_markup=buttons
         )
-    print("🔵 DEBUG: Bowling button sent to group")
+    print("🔵 DEBUG: Bowling deep link button sent to group")
 
     # Start 60 second timer
     await start_bowling_timer(client, chat_id, message.from_user.first_name, user_id)
@@ -127,68 +133,6 @@ async def switch_to_next_bowler(client, chat_id):
         chat_id,
         f"🔄 **Hey {next_bowler['first_name']}, now you're bowling!**"
     )
-
-
-# ==================== BOWLING BUTTON CALLBACK ====================
-
-async def bowling_button_callback(callback_query):
-    """Handle bowling button click - send DM to bowler with batter name"""
-    print("🔵 DEBUG: bowling_button_callback CALLED")
-    print(f"🔵 DEBUG: callback_query.data = {callback_query.data}")
-    print(f"🔵 DEBUG: callback_query.from_user.id = {callback_query.from_user.id}")
-    
-    user_id = callback_query.from_user.id
-    chat_id = callback_query.message.chat.id
-    
-    print(f"🔵 DEBUG: user_id = {user_id}, chat_id = {chat_id}")
-    
-    if chat_id not in active_games:
-        print("🔴 DEBUG: No active game found in active_games!")
-        await callback_query.answer("No active game!", show_alert=True)
-        return
-    
-    game = active_games[chat_id]
-    print(f"🔵 DEBUG: Game found for chat_id {chat_id}")
-    
-    if game.get("current_bowler") != user_id:
-        print(f"🔴 DEBUG: User {user_id} is not current bowler! Current bowler: {game.get('current_bowler')}")
-        await callback_query.answer("You are not the current bowler!", show_alert=True)
-        return
-    
-    if game.get("bowling_status") != "waiting_for_number":
-        print(f"🔴 DEBUG: bowling_status is {game.get('bowling_status')}, not waiting_for_number")
-        await callback_query.answer("Already processed!", show_alert=True)
-        return
-    
-    # Get current batter name
-    current_batter_id = game.get("current_batter")
-    current_batter_name = "Unknown"
-    for player in game.get("players", []):
-        if player.get("user_id") == current_batter_id:
-            current_batter_name = player.get("first_name")
-            break
-    print(f"🔵 DEBUG: Current batter: {current_batter_name} (ID: {current_batter_id})")
-    
-    await callback_query.answer("Check your DM!")
-    print("🔵 DEBUG: Answer sent to user")
-    
-    # Update group message
-    await callback_query.message.edit_text(f"✅ **{callback_query.from_user.first_name} check your DM!**")
-    print("🔵 DEBUG: Group message updated")
-    
-    # Send DM to bowler with batter name
-    try:
-        await callback_query._client.send_message(
-            user_id,
-            f"🎯 **Current batter: {current_batter_name}**\n\n"
-            f"Send your bowling number (1-6)!\n\n"
-            f"⏰ You have 60 seconds!\n\n"
-            f"Just type a number between 1-6 and send."
-        )
-        print(f"🔵 DEBUG: DM sent successfully to {user_id}")
-    except Exception as e:
-        print(f"🔴 DEBUG: Cannot send DM! Error: {e}")
-        await callback_query.message.reply_text(f"❌ Cannot send DM! Error: {e}")
 
 
 # ==================== GROUP BATTING HANDLER ====================
