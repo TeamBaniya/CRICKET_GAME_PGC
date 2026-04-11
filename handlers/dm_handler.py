@@ -1,5 +1,4 @@
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram.enums import ButtonStyle
+from pyrogram.types import Message
 from handlers.solo import solo_play_number, solo_wicket
 from database import db
 import random
@@ -70,14 +69,14 @@ async def handle_dm_message(client, message: Message):
                 return
     
     # ========== TEAM MODE - BOWLING HANDLING ==========
-    from handlers.gameplay import active_games, bowler_number_store as store
+    from handlers.gameplay import active_games
     from config import BATTING_VIDEO_URL
     
     for chat_id, game in active_games.items():
         if game.get("current_bowler") == user_id and game.get("bowling_status") == "waiting_for_number":
             if text_upper == "W":
                 game["bowling_status"] = "completed"
-                store[chat_id] = 0
+                bowler_number_store[chat_id] = 0
                 await message.reply_text("✅ You chose WICKET! Waiting for batsman...")
                 await send_batting_screen_to_group(client, chat_id, game)
                 return
@@ -85,7 +84,7 @@ async def handle_dm_message(client, message: Message):
             elif text.isdigit() and 1 <= int(text) <= 6:
                 number = int(text)
                 game["bowling_status"] = "completed"
-                store[chat_id] = number
+                bowler_number_store[chat_id] = number
                 await message.reply_text(f"✅ You sent {number}! Waiting for batsman...")
                 await send_batting_screen_to_group(client, chat_id, game)
                 return
@@ -103,7 +102,7 @@ async def handle_dm_message(client, message: Message):
         if game.get("current_batter") == user_id and game.get("batting_status") == "waiting_for_number":
             if text.isdigit() and 1 <= int(text) <= 6:
                 number = int(text)
-                bowler_num = store.get(chat_id, 0)
+                bowler_num = bowler_number_store.get(chat_id, 0)
                 
                 if bowler_num == number and bowler_num != 0:
                     game["current_wickets"] = game.get("current_wickets", 0) + 1
@@ -130,7 +129,7 @@ async def handle_dm_message(client, message: Message):
                     
                     await message.reply_text(f"❌ **YOU'RE OUT!** Bowler's number was {bowler_num}")
                     
-                    store[chat_id] = 0
+                    bowler_number_store[chat_id] = 0
                     
                     if game['current_balls'] >= (game.get('total_overs', 2) * 6) or game['current_wickets'] >= 10:
                         await end_match_team(client, chat_id, game)
@@ -166,7 +165,7 @@ async def handle_dm_message(client, message: Message):
                     
                     await message.reply_text(f"✅ You sent {number}! {runs} runs added!")
                     
-                    store[chat_id] = 0
+                    bowler_number_store[chat_id] = 0
                     
                     if game['current_balls'] >= (game.get('total_overs', 2) * 6) or game['current_wickets'] >= 10:
                         await end_match_team(client, chat_id, game)
@@ -260,9 +259,8 @@ async def end_match_team(client, chat_id, game):
     if chat_id in active_games:
         del active_games[chat_id]
     
-    from handlers.gameplay import bowler_number_store as store
-    if chat_id in store:
-        del store[chat_id]
+    if chat_id in bowler_number_store:
+        del bowler_number_store[chat_id]
 
 
 async def switch_to_next_batsman_team(client, chat_id, game):
