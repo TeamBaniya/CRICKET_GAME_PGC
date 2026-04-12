@@ -1,7 +1,7 @@
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ButtonStyle
 from database import db
-from config import BOWLING_VIDEO_URL, BATTING_VIDEO_URL, OUT_VIDEO_URL, WICKET_VIDEO_URL, SIX_VIDEO_URL, FOUR_VIDEO_URL, BOT_USERNAME
+from config import BOWLING_VIDEO_URL, BATTING_VIDEO_URL, OUT_VIDEO_URL, WICKET_VIDEO_URL, SIX_VIDEO_URL, FOUR_VIDEO_URL, BOT_USERNAME, RESULT_IMAGE_URL
 import random
 import asyncio
 from handlers.game import active_games
@@ -132,7 +132,7 @@ async def bowling_command(client, message: Message):
 
 
 async def start_bowling_timer(client, chat_id, bowler_name, bowler_id):
-    """50 second timer for bowler to send number (hidden)"""
+    """50 second timer - if no number, eliminate bowler"""
     for remaining in range(50, 0, -1):
         if chat_id not in active_games:
             return
@@ -143,15 +143,55 @@ async def start_bowling_timer(client, chat_id, bowler_name, bowler_id):
         
         await asyncio.sleep(1)
     
-    # Timeout - penalty
+    # Timeout - eliminate bowler
     if chat_id in active_games and active_games[chat_id].get("bowling_status") == "waiting_for_number":
+        game = active_games[chat_id]
+        
         await client.send_message(
             chat_id,
-            f"⏰ **No message received from @{bowler_name}, deducting 6 runs of bowler.**\n\n"
-            f"❌ **Seems Bowling player is not responding, User Eliminated from the game !!**"
+            f"⏰ **@{bowler_name} didn't send number in 50 seconds! Eliminated from the game!**"
         )
         
-        await switch_to_next_bowler(client, chat_id)
+        # Remove bowler from players list
+        players = game.get("players", [])
+        for i, player in enumerate(players):
+            if player.get("user_id") == bowler_id:
+                players.pop(i)
+                break
+        
+        game["players"] = players
+        
+        # Check if game has players left
+        if len(players) == 0:
+            await client.send_message(chat_id, "❌ No players left! Game ended!")
+            await end_match(client, None, chat_id)
+            return
+        
+        # Switch to next bowler
+        if len(players) > 0:
+            game["current_bowler"] = players[0]["user_id"]
+            game["current_bowler_index"] = 0
+            game["bowler_name"] = players[0]["first_name"]
+            game["bowling_status"] = "waiting_for_number"
+            
+            await client.send_message(
+                chat_id,
+                f"🔄 **Hey {players[0]['first_name']}, now you're bowling!**\n\n"
+                f"Click the BOWLING button to send your number!"
+            )
+            
+            # Send bowling button again
+            buttons = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🏏 Bowling", url=f"https://t.me/{BOT_USERNAME}?start=bowling_{chat_id}", style=ButtonStyle.PRIMARY)]
+            ])
+            
+            if BOWLING_VIDEO_URL:
+                await client.send_video(chat_id, BOWLING_VIDEO_URL, caption=f"👏 **{players[0]['first_name']} click below to send your number!**", reply_markup=buttons)
+            else:
+                await client.send_message(chat_id, f"👏 **{players[0]['first_name']} click below to send your number!**", reply_markup=buttons)
+            
+            # Start timer for new bowler
+            await start_bowling_timer(client, chat_id, players[0]['first_name'], players[0]["user_id"])
 
 
 async def switch_to_next_bowler(client, chat_id):
@@ -301,7 +341,7 @@ async def batting_command(client, message: Message):
 
 
 async def start_batting_timer(client, chat_id, batter_name, batter_id):
-    """50 second timer for batter to send number (hidden)"""
+    """50 second timer - if no number, eliminate batter"""
     for remaining in range(50, 0, -1):
         if chat_id not in active_games:
             return
@@ -312,15 +352,40 @@ async def start_batting_timer(client, chat_id, batter_name, batter_id):
         
         await asyncio.sleep(1)
     
-    # Timeout - penalty
+    # Timeout - eliminate batter
     if chat_id in active_games and active_games[chat_id].get("batting_status") == "waiting_for_number":
+        game = active_games[chat_id]
+        
         await client.send_message(
             chat_id,
-            f"⏰ **No message received from @{batter_name}, deducting 6 runs from batsman.**\n\n"
-            f"❌ **Seems Batting player is not responding, User Eliminated from the game !!**"
+            f"⏰ **@{batter_name} didn't send number in 50 seconds! Eliminated from the game!**"
         )
         
-        await switch_to_next_batsman(client, chat_id)
+        # Remove batter from players list
+        players = game.get("players", [])
+        for i, player in enumerate(players):
+            if player.get("user_id") == batter_id:
+                players.pop(i)
+                break
+        
+        game["players"] = players
+        
+        if len(players) == 0:
+            await client.send_message(chat_id, "❌ No players left! Game ended!")
+            await end_match(client, None, chat_id)
+            return
+        
+        # Switch to next batter
+        if len(players) > 0:
+            game["current_batter"] = players[0]["user_id"]
+            game["current_batter_index"] = 0
+            game["batting_status"] = "waiting_for_number"
+            
+            await client.send_message(
+                chat_id,
+                f"🔄 **Hey {players[0]['first_name']}, now you're batting!**\n\n"
+                f"Send your number (1-6) in group to play!"
+            )
 
 
 # ==================== GROUP BATTING HANDLER (for group numbers) ====================
@@ -370,6 +435,16 @@ async def handle_group_batting_number(client, message: Message):
         game["current_balls"] = game.get("current_balls", 0) + 1
         game["batting_status"] = "completed"
         
+        # Update player stats
+        for player in game.get("players", []):
+            if player.get("user_id") == user_id:
+                player["runs"] = game.get("current_runs", 0)
+                player["balls"] = game.get("current_balls", 0)
+                player["fours"] = game.get("fours", 0)
+                player["sixes"] = game.get("sixes", 0)
+                player["ball_sequence"] = game.get("ball_sequence", [])
+                break
+        
         # Send WICKET video first
         if WICKET_VIDEO_URL:
             await client.send_video(chat_id, WICKET_VIDEO_URL, caption=f"🎯 **WICKET!** 🎯")
@@ -410,6 +485,13 @@ async def handle_group_batting_number(client, message: Message):
     game["current_balls"] = game.get("current_balls", 0) + 1
     game["ball_sequence"].append(runs)
     game["batting_status"] = "completed"
+    
+    # Update fours/sixes
+    if runs == 4:
+        game["fours"] = game.get("fours", 0) + 1
+    elif runs == 6:
+        game["sixes"] = game.get("sixes", 0) + 1
+    
     print(f"🔵 DEBUG: NOT OUT! {runs} runs added. Total: {game['current_runs']}/{game['current_wickets']}")
     
     # Send runs video based on runs
@@ -532,7 +614,7 @@ async def end_match_command(client, message: Message):
 
 
 async def end_match(client, message, chat_id):
-    """End match internally"""
+    """End match internally with result image and clickable players"""
     if chat_id in active_games:
         game = active_games[chat_id]
         current_runs = game.get("current_runs", 0)
@@ -540,13 +622,81 @@ async def end_match(client, message, chat_id):
         current_balls = game.get("current_balls", 0)
         final_score = f"{current_runs}/{current_wickets}"
         
+        # Update final player stats
+        for player in game.get("players", []):
+            if player.get("user_id") == game.get("current_batter"):
+                player["runs"] = current_runs
+                player["balls"] = current_balls
+                player["fours"] = game.get("fours", 0)
+                player["sixes"] = game.get("sixes", 0)
+                player["ball_sequence"] = game.get("ball_sequence", [])
+                break
+        
+        # Prepare players list for result with clickable names
+        players = game.get("players", [])
+        players_list = ""
+        
+        # Icons for players
+        icons = ["🟢", "⚽", "🔥", "🌞", "💬", "🎮", "🏀", "🐍", "🕊️", "⭐", "⚡", "💎"]
+        
+        for i, player in enumerate(players):
+            icon = icons[i % len(icons)]
+            name = player.get('first_name', 'Unknown')
+            username = player.get('username')
+            runs = player.get('runs', 0)
+            balls = player.get('balls', 0)
+            fours = player.get('fours', 0)
+            sixes = player.get('sixes', 0)
+            user_id = player.get('user_id')
+            ball_seq = player.get('ball_sequence', [])
+            
+            # Format ball sequence
+            seq_str = ", ".join(str(s) for s in ball_seq[-8:]) if ball_seq else "-"
+            
+            # Make name clickable
+            if username:
+                clickable_name = f"@{username}"
+            else:
+                clickable_name = f'<a href="tg://user?id={user_id}">{name}</a>'
+            
+            players_list += f"{i+1}. {icon} **{clickable_name}** = {runs}({balls})\n"
+            players_list += f"    ╰⊚ 4️⃣s: {fours:02d}, 6️⃣s: {sixes:02d} - ID: `{user_id}`\n"
+            players_list += f"      ╰⊚ ({seq_str})\n\n"
+        
+        # First: Send "Game Ended" message
         await client.send_message(
             chat_id,
-            f"🏆 **Match Ended!** 🏆\n\n"
-            f"📊 **Final Score:** {final_score}\n"
-            f"📈 **Balls Faced:** {current_balls}\n\n"
-            f"Thanks for playing! 🎉"
+            f"🏏 **Game Ended**\n\n"
+            f"📊 Final Score: {final_score}\n"
+            f"📈 Balls: {current_balls}\n\n"
+            f"Result loading... 🎯"
         )
+        
+        # Second: Send result image with players list
+        result_caption = f"─────⊱ 𝐒𝐨𝐥𝐨 𝐏𝐥𝐚𝐲𝐞𝐫𝐬 ⊰────\n\n{players_list}\n\n🎮 **Play Again:** /startgame"
+        
+        if RESULT_IMAGE_URL:
+            await client.send_photo(
+                chat_id,
+                photo=RESULT_IMAGE_URL,
+                caption=result_caption,
+                parse_mode="HTML"
+            )
+        else:
+            await client.send_message(
+                chat_id, 
+                result_caption,
+                parse_mode="HTML"
+            )
+        
+        # Save to database
+        await db.create_match({
+            "chat_id": chat_id,
+            "score": final_score,
+            "balls": current_balls,
+            "players": players,
+            "created_at": datetime.now()
+        })
         
         del active_games[chat_id]
         
