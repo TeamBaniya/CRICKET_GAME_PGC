@@ -91,6 +91,63 @@ async def callback_handler(client, callback_query: CallbackQuery):
         from handlers.gameplay import bowling_button_callback
         await bowling_button_callback(callback_query)
     
+    # ========== BOWLER NUMBER BUTTONS (1-6) ==========
+    elif data.startswith("bowler_number_"):
+        number = int(data.split("_")[2])
+        user_id = callback_query.from_user.id
+        chat_id = None
+        
+        from handlers.gameplay import active_games, bowler_number_store
+        for cid, game in active_games.items():
+            if game.get("current_bowler") == user_id:
+                chat_id = cid
+                break
+        
+        if chat_id and chat_id in active_games:
+            game = active_games[chat_id]
+            if game.get("bowling_status") == "waiting_for_number":
+                game["bowling_status"] = "completed"
+                bowler_number_store[chat_id] = number
+                
+                # Send batting screen to group
+                await callback_query._client.send_message(
+                    chat_id,
+                    f"🎯 **Bowler has sent their number!**\n\n"
+                    f"Now batsman, send your number (1-6) in group!"
+                )
+                await callback_query.message.edit_text(f"✅ You selected {number}! Waiting for batsman...")
+                await callback_query.answer(f"Number {number} sent!")
+                
+                # Call batting screen
+                from handlers.dm_handler import send_batting_screen_to_group
+                await send_batting_screen_to_group(callback_query._client, chat_id, game)
+            else:
+                await callback_query.answer("Already processed!", show_alert=True)
+        else:
+            await callback_query.answer("No active game!", show_alert=True)
+    
+    # ========== BOWLER BACK TO GROUP BUTTON ==========
+    elif data == "bowler_back_to_group":
+        user_id = callback_query.from_user.id
+        chat_id = None
+        
+        from handlers.gameplay import active_games
+        for cid, game in active_games.items():
+            if game.get("current_bowler") == user_id:
+                chat_id = cid
+                break
+        
+        if chat_id:
+            await callback_query._client.send_message(
+                chat_id,
+                f"🎯 **@{callback_query.from_user.first_name}, send your bowling number (1-6) in group!**"
+            )
+            await callback_query.message.edit_text("✅ Returned to group! Send your number there.")
+        else:
+            await callback_query.message.edit_text("❌ No active game found!")
+        
+        await callback_query.answer()
+    
     # ========== BATTING BUTTON CALLBACK ==========
     elif data == "batting_btn":
         await callback_query.answer("Batting button clicked! Send number in group!")
