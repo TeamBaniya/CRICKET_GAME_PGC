@@ -132,7 +132,7 @@ async def bowling_command(client, message: Message):
 
 
 async def start_bowling_timer(client, chat_id, bowler_name, bowler_id):
-    """50 second timer - if no number, eliminate bowler"""
+    """50 second timer - if no number, eliminate bowler and move to next"""
     for remaining in range(50, 0, -1):
         if chat_id not in active_games:
             return
@@ -147,12 +147,13 @@ async def start_bowling_timer(client, chat_id, bowler_name, bowler_id):
     if chat_id in active_games and active_games[chat_id].get("bowling_status") == "waiting_for_number":
         game = active_games[chat_id]
         
+        # Send elimination message
         await client.send_message(
             chat_id,
             f"⏰ **@{bowler_name} didn't send number in 50 seconds! Eliminated from the game!**"
         )
         
-        # Remove bowler from players list
+        # Remove current bowler from players list
         players = game.get("players", [])
         for i, player in enumerate(players):
             if player.get("user_id") == bowler_id:
@@ -161,37 +162,37 @@ async def start_bowling_timer(client, chat_id, bowler_name, bowler_id):
         
         game["players"] = players
         
-        # Check if game has players left
+        # Check if any players left
         if len(players) == 0:
             await client.send_message(chat_id, "❌ No players left! Game ended!")
             await end_match(client, None, chat_id)
             return
         
-        # Switch to next bowler
-        if len(players) > 0:
-            game["current_bowler"] = players[0]["user_id"]
-            game["current_bowler_index"] = 0
-            game["bowler_name"] = players[0]["first_name"]
-            game["bowling_status"] = "waiting_for_number"
-            
-            await client.send_message(
-                chat_id,
-                f"🔄 **Hey {players[0]['first_name']}, now you're bowling!**\n\n"
-                f"Click the BOWLING button to send your number!"
-            )
-            
-            # Send bowling button again
-            buttons = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🏏 Bowling", url=f"https://t.me/{BOT_USERNAME}?start=bowling_{chat_id}", style=ButtonStyle.PRIMARY)]
-            ])
-            
-            if BOWLING_VIDEO_URL:
-                await client.send_video(chat_id, BOWLING_VIDEO_URL, caption=f"👏 **{players[0]['first_name']} click below to send your number!**", reply_markup=buttons)
-            else:
-                await client.send_message(chat_id, f"👏 **{players[0]['first_name']} click below to send your number!**", reply_markup=buttons)
-            
-            # Start timer for new bowler
-            await start_bowling_timer(client, chat_id, players[0]['first_name'], players[0]["user_id"])
+        # Set next bowler
+        game["current_bowler"] = players[0]["user_id"]
+        game["current_bowler_index"] = 0
+        game["bowler_name"] = players[0]["first_name"]
+        game["bowling_status"] = "waiting_for_number"
+        
+        # Send message to next bowler
+        await client.send_message(
+            chat_id,
+            f"🔄 **Hey {players[0]['first_name']}, now you're bowling!**\n\n"
+            f"Click the BOWLING button to send your number!"
+        )
+        
+        # Send bowling button to next bowler
+        buttons = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🏏 Bowling", url=f"https://t.me/{BOT_USERNAME}?start=bowling_{chat_id}", style=ButtonStyle.PRIMARY)]
+        ])
+        
+        if BOWLING_VIDEO_URL:
+            await client.send_video(chat_id, BOWLING_VIDEO_URL, caption=f"👏 **{players[0]['first_name']} click below to send your number!**", reply_markup=buttons)
+        else:
+            await client.send_message(chat_id, f"👏 **{players[0]['first_name']} click below to send your number!**", reply_markup=buttons)
+        
+        # Start timer for new bowler
+        await start_bowling_timer(client, chat_id, players[0]['first_name'], players[0]["user_id"])
 
 
 async def switch_to_next_bowler(client, chat_id):
@@ -341,7 +342,7 @@ async def batting_command(client, message: Message):
 
 
 async def start_batting_timer(client, chat_id, batter_name, batter_id):
-    """50 second timer - if no number, eliminate batter"""
+    """50 second timer - if no number, eliminate batter and move to next"""
     for remaining in range(50, 0, -1):
         if chat_id not in active_games:
             return
