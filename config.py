@@ -32,6 +32,9 @@ MEMBERS_LIST_IMAGE_URL = "https://files.catbox.moe/zovpa4.jpg"
 SOLO_GAME_START_IMAGE = "https://files.catbox.moe/zovpa4.jpg"
 BOWLING_DM_IMAGE_URL = "https://graph.org/file/3680f9d14543771855ee0-1ff9d9b2aeabefedb2.mp4"
 
+# ========== RESULT IMAGE ==========
+RESULT_IMAGE_URL = "https://graph.org/file/17971526dfefa9e20863b-44207fd3a022c59c53.jpg"  # Result image link daalo
+
 # ========== LINKS (AAP YAHAN APNE LINKS DAALOGE) ==========
 UPDATES_LINK = "https://t.me/your_updates_channel"      # 📢 UPDATES button
 SUPPORT_LINK = "https://t.me/your_support_group"        # 🔗 SUPPORT button
