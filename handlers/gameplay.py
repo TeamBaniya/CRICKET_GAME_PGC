@@ -147,13 +147,11 @@ async def start_bowling_timer(client, chat_id, bowler_name, bowler_id):
     if chat_id in active_games and active_games[chat_id].get("bowling_status") == "waiting_for_number":
         game = active_games[chat_id]
         
-        # Send elimination message
         await client.send_message(
             chat_id,
             f"⏰ **@{bowler_name} didn't send number in 50 seconds! Eliminated from the game!**"
         )
         
-        # Remove current bowler from players list
         players = game.get("players", [])
         for i, player in enumerate(players):
             if player.get("user_id") == bowler_id:
@@ -162,37 +160,33 @@ async def start_bowling_timer(client, chat_id, bowler_name, bowler_id):
         
         game["players"] = players
         
-        # Check if any players left
         if len(players) == 0:
             await client.send_message(chat_id, "❌ No players left! Game ended!")
             await end_match(client, None, chat_id)
             return
         
-        # Set next bowler
-        game["current_bowler"] = players[0]["user_id"]
-        game["current_bowler_index"] = 0
-        game["bowler_name"] = players[0]["first_name"]
-        game["bowling_status"] = "waiting_for_number"
-        
-        # Send message to next bowler
-        await client.send_message(
-            chat_id,
-            f"🔄 **Hey {players[0]['first_name']}, now you're bowling!**\n\n"
-            f"Click the BOWLING button to send your number!"
-        )
-        
-        # Send bowling button to next bowler
-        buttons = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🏏 Bowling", url=f"https://t.me/{BOT_USERNAME}?start=bowling_{chat_id}", style=ButtonStyle.PRIMARY)]
-        ])
-        
-        if BOWLING_VIDEO_URL:
-            await client.send_video(chat_id, BOWLING_VIDEO_URL, caption=f"👏 **{players[0]['first_name']} click below to send your number!**", reply_markup=buttons)
-        else:
-            await client.send_message(chat_id, f"👏 **{players[0]['first_name']} click below to send your number!**", reply_markup=buttons)
-        
-        # Start timer for new bowler
-        await start_bowling_timer(client, chat_id, players[0]['first_name'], players[0]["user_id"])
+        if len(players) > 0:
+            game["current_bowler"] = players[0]["user_id"]
+            game["current_bowler_index"] = 0
+            game["bowler_name"] = players[0]["first_name"]
+            game["bowling_status"] = "waiting_for_number"
+            
+            await client.send_message(
+                chat_id,
+                f"🔄 **Hey {players[0]['first_name']}, now you're bowling!**\n\n"
+                f"Click the BOWLING button to send your number!"
+            )
+            
+            buttons = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🏏 Bowling", url=f"https://t.me/{BOT_USERNAME}?start=bowling_{chat_id}", style=ButtonStyle.PRIMARY)]
+            ])
+            
+            if BOWLING_VIDEO_URL:
+                await client.send_video(chat_id, BOWLING_VIDEO_URL, caption=f"👏 **{players[0]['first_name']} click below to send your number!**", reply_markup=buttons)
+            else:
+                await client.send_message(chat_id, f"👏 **{players[0]['first_name']} click below to send your number!**", reply_markup=buttons)
+            
+            await start_bowling_timer(client, chat_id, players[0]['first_name'], players[0]["user_id"])
 
 
 async def switch_to_next_bowler(client, chat_id):
@@ -248,7 +242,6 @@ async def batting_command(client, message: Message):
 
     # ✅ Send DM to batter FIRST (with Group button)
     try:
-        # Get current bowler name
         current_bowler_id = game.get("current_bowler")
         current_bowler_name = "Unknown"
         for player in game.get("players", []):
@@ -256,18 +249,15 @@ async def batting_command(client, message: Message):
                 current_bowler_name = player.get("first_name")
                 break
 
-        # Get over/balls info
         current_balls = game.get("current_balls", 0)
         overs_done = current_balls // 6
         balls_done = current_balls % 6
 
-        # Create group link button for DM
         group_link = f"https://t.me/c/{str(chat_id).replace('-100', '')}"
         dm_buttons = InlineKeyboardMarkup([
             [InlineKeyboardButton("🏀 Group", url=group_link, style=ButtonStyle.PRIMARY)]
         ])
 
-        # Try to send image if available
         try:
             from config import BATTING_DM_IMAGE_URL
             if BATTING_DM_IMAGE_URL:
@@ -302,15 +292,12 @@ async def batting_command(client, message: Message):
     except Exception as e:
         print(f"🔴 DEBUG: Cannot send DM! Error: {e}")
 
-    # Send message first in group
     await message.reply_text(
         f"🏏 **Hey {message.from_user.first_name}, now you're batting!**"
     )
 
-    # Wait 2 seconds
     await asyncio.sleep(2)
 
-    # 🔥 Deep Link Button - Directly opens DM (no callback)
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(
@@ -321,7 +308,6 @@ async def batting_command(client, message: Message):
         ]
     ])
 
-    # Send batting video with deep link button
     if BATTING_VIDEO_URL:
         await client.send_video(
             chat_id,
@@ -337,7 +323,6 @@ async def batting_command(client, message: Message):
         )
     print("🔵 DEBUG: Batting deep link button sent to group")
 
-    # Start 50 second timer
     await start_batting_timer(client, chat_id, message.from_user.first_name, user_id)
 
 
@@ -353,7 +338,6 @@ async def start_batting_timer(client, chat_id, batter_name, batter_id):
         
         await asyncio.sleep(1)
     
-    # Timeout - eliminate batter
     if chat_id in active_games and active_games[chat_id].get("batting_status") == "waiting_for_number":
         game = active_games[chat_id]
         
@@ -362,7 +346,6 @@ async def start_batting_timer(client, chat_id, batter_name, batter_id):
             f"⏰ **@{batter_name} didn't send number in 50 seconds! Eliminated from the game!**"
         )
         
-        # Remove batter from players list
         players = game.get("players", [])
         for i, player in enumerate(players):
             if player.get("user_id") == batter_id:
@@ -376,7 +359,6 @@ async def start_batting_timer(client, chat_id, batter_name, batter_id):
             await end_match(client, None, chat_id)
             return
         
-        # Switch to next batter
         if len(players) > 0:
             game["current_batter"] = players[0]["user_id"]
             game["current_batter_index"] = 0
@@ -399,7 +381,6 @@ async def handle_group_batting_number(client, message: Message):
     number = int(message.text.strip())
     print(f"🔵 DEBUG: User {user_id} sent number {number} in chat {chat_id}")
     
-    # Add thumb emoji reaction 👍
     try:
         await message.react(emoji="👍")
         print("🔵 DEBUG: Added 👍 reaction")
@@ -424,19 +405,16 @@ async def handle_group_batting_number(client, message: Message):
         await message.reply_text("❌ Already processed! Wait for your turn.")
         return
     
-    # Get bowler's number
     bowler_num = bowler_number_store.get(chat_id, 0)
     print(f"🔵 DEBUG: Bowler number: {bowler_num}, Batter number: {number}")
     
     # Check if OUT (numbers match)
     if bowler_num == number and bowler_num != 0:
         print("🔵 DEBUG: OUT! Numbers match")
-        # WICKET!
         game["current_wickets"] = game.get("current_wickets", 0) + 1
         game["current_balls"] = game.get("current_balls", 0) + 1
         game["batting_status"] = "completed"
         
-        # Update player stats
         for player in game.get("players", []):
             if player.get("user_id") == user_id:
                 player["runs"] = game.get("current_runs", 0)
@@ -446,15 +424,12 @@ async def handle_group_batting_number(client, message: Message):
                 player["ball_sequence"] = game.get("ball_sequence", [])
                 break
         
-        # Send WICKET video first
         if WICKET_VIDEO_URL:
             await client.send_video(chat_id, WICKET_VIDEO_URL, caption=f"🎯 **WICKET!** 🎯")
         
-        # Send OUT video
         if OUT_VIDEO_URL:
             await client.send_video(chat_id, OUT_VIDEO_URL)
         
-        # ✅ OUT message with clickable name
         username = message.from_user.username
         if username:
             await client.send_message(chat_id, f"**Number matches, @{username} is out!**")
@@ -468,26 +443,22 @@ async def handle_group_batting_number(client, message: Message):
             f"Bowler: {bowler_num} | Batter: {number}"
         )
         
-        # Clear stored number
         bowler_number_store[chat_id] = 0
         
-        # Check for match end
         if game['current_balls'] >= (game.get('total_overs', 2) * 6) or game['current_wickets'] >= 10:
             await end_match(client, message, chat_id)
             return
         
-        # Switch to next batsman
         await switch_to_next_batsman(client, chat_id)
         return
     
-    # NOT OUT - Add runs (runs = batter's number)
+    # NOT OUT - Add runs
     runs = number
     game["current_runs"] = game.get("current_runs", 0) + runs
     game["current_balls"] = game.get("current_balls", 0) + 1
     game["ball_sequence"].append(runs)
     game["batting_status"] = "completed"
     
-    # Update fours/sixes
     if runs == 4:
         game["fours"] = game.get("fours", 0) + 1
     elif runs == 6:
@@ -495,7 +466,6 @@ async def handle_group_batting_number(client, message: Message):
     
     print(f"🔵 DEBUG: NOT OUT! {runs} runs added. Total: {game['current_runs']}/{game['current_wickets']}")
     
-    # Send runs video based on runs
     if runs == 6 and SIX_VIDEO_URL:
         await client.send_video(chat_id, SIX_VIDEO_URL, caption=f"🎯 **SIX!** 🚀")
     elif runs == 5:
@@ -522,15 +492,12 @@ async def handle_group_batting_number(client, message: Message):
         f"🏏 **{runs} RUNS!**"
     )
     
-    # Clear stored number for next ball
     bowler_number_store[chat_id] = 0
     
-    # Check for match end
     if game['current_balls'] >= (game.get('total_overs', 2) * 6) or game['current_wickets'] >= 10:
         await end_match(client, message, chat_id)
         return
     
-    # Next ball - ask bowler
     game["bowling_status"] = "waiting_for_number"
     game["batting_status"] = "waiting_for_number"
     
@@ -637,7 +604,6 @@ async def end_match(client, message, chat_id):
         players = game.get("players", [])
         players_list = ""
         
-        # Icons for players
         icons = ["🟢", "⚽", "🔥", "🌞", "💬", "🎮", "🏀", "🐍", "🕊️", "⭐", "⚡", "💎"]
         
         for i, player in enumerate(players):
@@ -651,10 +617,8 @@ async def end_match(client, message, chat_id):
             user_id = player.get('user_id')
             ball_seq = player.get('ball_sequence', [])
             
-            # Format ball sequence
             seq_str = ", ".join(str(s) for s in ball_seq[-8:]) if ball_seq else "-"
             
-            # Make name clickable
             if username:
                 clickable_name = f"@{username}"
             else:
@@ -690,7 +654,6 @@ async def end_match(client, message, chat_id):
                 parse_mode="HTML"
             )
         
-        # Save to database
         await db.create_match({
             "chat_id": chat_id,
             "score": final_score,
