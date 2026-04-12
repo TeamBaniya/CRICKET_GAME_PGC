@@ -376,16 +376,20 @@ async def handle_group_batting_number(client, message: Message):
         
         # Send OUT video
         if OUT_VIDEO_URL:
-            await client.send_video(chat_id, OUT_VIDEO_URL, caption=f"❌ **Number matches! {message.from_user.first_name} is out!**")
+            await client.send_video(chat_id, OUT_VIDEO_URL)
+        
+        # ✅ OUT message with clickable name
+        username = message.from_user.username
+        if username:
+            await client.send_message(chat_id, f"**Number matches, @{username} is out!**")
         else:
-            await message.reply_text(f"❌ **Number matches! {message.from_user.first_name} is out!**")
+            await client.send_message(chat_id, f"**Number matches, {message.from_user.first_name} is out!**")
         
         response_time = random.randint(30, 150)
         await message.reply_text(
             f"📊 Score: {game['current_runs']}/{game['current_wickets']}\n"
             f"⏱️ {response_time}ms\n\n"
-            f"Bowler: {bowler_num} | Batter: {number}\n"
-            f"❌ **OUT!**"
+            f"Bowler: {bowler_num} | Batter: {number}"
         )
         
         # Clear stored number
