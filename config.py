@@ -13,7 +13,7 @@ BOT_USERNAME = "testingpgcbot"
 OWNER_LINK = "https://t.me/oye_sparsh"  # Apna Telegram profile link
 
 # ========== BOT TOKEN ==========
-BOT_TOKEN = "8710613096:AAHOqrjfrKU-RNcVGKgHprD6ZW3nUhI-y4U"
+BOT_TOKEN = "8628663860:AAHi_F0pBNLSzJlclUpJ4M3D2EtoxYt7Nmg"
 
 # ========== GAME INSTRUCTIONS IMAGE ==========
 GAME_INSTRUCTIONS_IMAGE_URL = "https://files.catbox.moe/iq4758.jpg"
