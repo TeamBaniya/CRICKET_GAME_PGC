@@ -4,8 +4,8 @@ from config import BOT_TOKEN
 from handlers import register_handlers
 
 # ✅ Apna API_ID aur API_HASH yahan daalo
-API_ID = 20138139
-API_HASH = "ff813495ed17a07723000a9751f4c3ee"
+API_ID = 30041407
+API_HASH = "99e124de540308ca93dc982d167ad67f"
 
 bot = Client(
     "cricket_bot",
