@@ -109,7 +109,6 @@ async def callback_handler(client, callback_query: CallbackQuery):
                 game["bowling_status"] = "completed"
                 bowler_number_store[chat_id] = number
                 
-                # Send batting screen to group
                 await callback_query._client.send_message(
                     chat_id,
                     f"🎯 **Bowler has sent their number!**\n\n"
@@ -118,7 +117,6 @@ async def callback_handler(client, callback_query: CallbackQuery):
                 await callback_query.message.edit_text(f"✅ You selected {number}! Waiting for batsman...")
                 await callback_query.answer(f"Number {number} sent!")
                 
-                # Call batting screen
                 from handlers.dm_handler import send_batting_screen_to_group
                 await send_batting_screen_to_group(callback_query._client, chat_id, game)
             else:
