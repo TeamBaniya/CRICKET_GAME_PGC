@@ -1,4 +1,3 @@
-# TODO: Add your code here
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from pyrogram.enums import ButtonStyle
 from config import UPDATES_LINK, SUPPORT_LINK, OWNER_LINK, GAME_INSTRUCTIONS_IMAGE_URL
