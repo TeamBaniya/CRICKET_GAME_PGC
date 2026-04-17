@@ -1,38 +1,40 @@
-from pyrogram import Client
-from handlers import register_handlers, callback_handler
-import asyncio
-import os
+from handlers.bowling import bowling_command, bowling_dm_handler
+from handlers.batting import batting_command, handle_group_batting_number
+from handlers.result import end_match
+from handlers.game import create_game_command, joingame_command, start_timers
+from handlers.start import start_command
 
-API_ID = YOUR_API_ID
-API_HASH = "YOUR_API_HASH"
-BOT_TOKEN = "YOUR_BOT_TOKEN"
+async def register_handlers(client, message):
+    # ========== GROUP MEIN NUMBER RECEIVE (BATTING) ==========
+    if message.chat.type in ["group", "supergroup"] and message.text:
+        text_stripped = message.text.strip()
+        if text_stripped.isdigit() and 1 <= int(text_stripped) <= 6:
+            await handle_group_batting_number(client, message)
+            return
+    
+    # ========== DM ME NUMBER RECEIVE (BOWLING) ==========
+    if message.chat.type == "private" and message.text:
+        text_upper = message.text.upper()
+        if text_upper in ["1", "2", "3", "4", "5", "6"]:
+            await bowling_dm_handler(client, message)
+            return
+    
+    text = message.text.lower() if message.text else ""
+    
+    # ========== COMMANDS ==========
+    if text == "/start":
+        await start_command(client, message)
+    elif text == "/create_game":
+        await create_game_command(client, message)
+    elif text == "/joingame":
+        await joingame_command(client, message)
+    elif text == "/bowling":
+        await bowling_command(client, message)
+    elif text == "/batting":
+        await batting_command(client, message)
 
-app = Client(
-    "cricket_bot_session",
-    api_id=API_ID,
-    api_hash=API_HASH,
-    bot_token=BOT_TOKEN
-)
 
-@app.on_message()
-async def message_handler(client, message):
-    await register_handlers(client, message)
-
-@app.on_callback_query()
-async def callback_query_handler(client, callback_query):
-    await callback_handler(client, callback_query)
-
-async def main():
-    print("🤖 Cricket Game Bot is starting...")
-    await app.start()
-    print("✅ Bot is now running!")
-    print("Press Ctrl+C to stop the bot")
-    await asyncio.Event().wait()  # Keep the bot running
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n❌ Bot stopped by user")
-    except Exception as e:
-        print(f"❌ Error: {e}")
+async def callback_handler(client, callback_query):
+    """Separate handler for callback queries (button presses)"""
+    from handlers.callback import callback_handler as cb_handler
+    await cb_handler(client, callback_query)
