@@ -1,57 +1,38 @@
 from pyrogram import Client
-from pyrogram.types import BotCommand, CallbackQuery
-from config import BOT_TOKEN
-from handlers import register_handlers
+from handlers import register_handlers, callback_handler
+import asyncio
+import os
 
-# ✅ Apna API_ID aur API_HASH yahan daalo
-API_ID = 24168862
-API_HASH = "916a9424dd1e58ab7955001ccc0172b3"
+API_ID = YOUR_API_ID
+API_HASH = "YOUR_API_HASH"
+BOT_TOKEN = "YOUR_BOT_TOKEN"
 
-bot = Client(
-    "cricket_bot",
-    bot_token=BOT_TOKEN,
+app = Client(
+    "cricket_bot_session",
     api_id=API_ID,
-    api_hash=API_HASH
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN
 )
 
-async def setup_commands():
-    commands = [
-        BotCommand("start", "Start the bot"),
-        BotCommand("help", "Get help"),
-        BotCommand("startgame", "Start team match"),
-        BotCommand("solo", "Solo mode menu"),
-        BotCommand("solo_start", "Start solo match"),
-        BotCommand("bowling", "Select bowling speed"),
-        BotCommand("batting", "Play as batsman"),
-        BotCommand("joingame", "Join existing game"),
-        BotCommand("vote_game", "Start voting session"),
-        BotCommand("add_A", "Add member to Team A"),
-        BotCommand("add_B", "Add member to Team B"),
-        BotCommand("join_teamA", "Join Team A"),
-        BotCommand("join_teamB", "Join Team B"),
-        BotCommand("members_list", "Show team members"),
-        BotCommand("end_match", "End current match"),
-        BotCommand("feedback", "Give feedback"),
-    ]
-    await bot.set_bot_commands(commands)
-
-@bot.on_message()
-async def main_handler(client, message):
+@app.on_message()
+async def message_handler(client, message):
     await register_handlers(client, message)
 
-# ✅ Callback query handler for button clicks
-@bot.on_callback_query()
-async def callback_handler_wrapper(client, callback_query: CallbackQuery):
-    from handlers.callback import callback_handler
+@app.on_callback_query()
+async def callback_query_handler(client, callback_query):
     await callback_handler(client, callback_query)
 
+async def main():
+    print("🤖 Cricket Game Bot is starting...")
+    await app.start()
+    print("✅ Bot is now running!")
+    print("Press Ctrl+C to stop the bot")
+    await asyncio.Event().wait()  # Keep the bot running
+
 if __name__ == "__main__":
-    print("🤖 Cricket Bot Starting...")
-    print("✅ Bot is running! Press Ctrl+C to stop.")
-    print("📊 Commands registered:")
-    print("   • /start - Welcome message")
-    print("   • /solo - Solo mode")
-    print("   • /startgame - Team match")
-    print("   • /bowling /batting - Gameplay")
-    print("   • /help - Help menu")
-    bot.run()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n❌ Bot stopped by user")
+    except Exception as e:
+        print(f"❌ Error: {e}")
