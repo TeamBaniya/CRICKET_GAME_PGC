@@ -32,6 +32,9 @@ async def register_handlers(client, message):
         await bowling_command(client, message)
     elif text == "/batting":
         await batting_command(client, message)
-    elif message.callback_query:
-        from handlers.callback import callback_handler
-        await callback_handler(client, message.callback_query)
+
+
+async def callback_handler(client, callback_query):
+    """Separate handler for callback queries (button presses)"""
+    from handlers.callback import callback_handler as cb_handler
+    await cb_handler(client, callback_query)
